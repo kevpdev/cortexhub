@@ -1,0 +1,19 @@
+{
+  "name": "cortexhub-mcp",
+  "version": "1.0.0",
+  "description": "MCP server exposing CortexHub core tools to any AI agent",
+  "type": "module",
+  "main": "server.js",
+  "bin": {
+    "cortexhub-mcp": "./server.js"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

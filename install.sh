@@ -4,23 +4,27 @@
 # Safe to re-run (idempotent). Detects conflicts before acting.
 #
 # Usage:
-#   ./install.sh           — full interactive install
+#   ./install.sh           — full install (core + Claude wrapper)
+#   ./install.sh --mcp     — also install MCP server (npm install + symlink)
 #   ./install.sh --dry-run — show what would be done, no changes
-#   ./install.sh --uninstall — remove all symlinks created by this script
+#   ./install.sh --uninstall [--mcp] — remove symlinks created by this script
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CORE_DIR="$REPO_DIR/core"
 CLAUDE_WRAPPER="$REPO_DIR/wrappers/claude"
+MCP_WRAPPER="$REPO_DIR/wrappers/mcp"
 
 DRY_RUN=false
 UNINSTALL=false
+INSTALL_MCP=false
 
 for arg in "$@"; do
   case "$arg" in
     --dry-run)   DRY_RUN=true ;;
     --uninstall) UNINSTALL=true ;;
-    *) printf "Unknown option: %s\nUsage: install.sh [--dry-run|--uninstall]\n" "$arg"; exit 1 ;;
+    --mcp)       INSTALL_MCP=true ;;
+    *) printf "Unknown option: %s\nUsage: install.sh [--dry-run|--uninstall|--mcp]\n" "$arg"; exit 1 ;;
   esac
 done
 
@@ -90,6 +94,11 @@ if $UNINSTALL; then
   printf "\nRemoving ~/.claude/MEMORY-BANK-GUIDE.md\n"
   remove_symlink "$HOME/.claude/MEMORY-BANK-GUIDE.md"
 
+  if $INSTALL_MCP; then
+    printf "\nRemoving ~/.ai-core/mcp symlink\n"
+    remove_symlink "$HOME/.ai-core/mcp"
+  fi
+
   printf "\nDone.\n"
   exit 0
 fi
@@ -129,6 +138,25 @@ else
   printf "\n" >> "$CLAUDE_MD"
   cat "$SNIPPET" >> "$CLAUDE_MD"
   log_ok "snippet injected into $CLAUDE_MD"
+fi
+
+if $INSTALL_MCP; then
+  printf "\n6. MCP server\n"
+  if $DRY_RUN; then
+    log_dry "npm install in $MCP_WRAPPER"
+    log_dry "symlink ~/.ai-core/mcp → $MCP_WRAPPER"
+  else
+    if ! command -v node &>/dev/null; then
+      log_err "Node.js not found — install Node 18+ and re-run with --mcp"
+    else
+      (cd "$MCP_WRAPPER" && npm install --silent)
+      log_ok "npm install done"
+      make_symlink "$MCP_WRAPPER" "$HOME/.ai-core/mcp"
+      printf "\n"
+      log "To connect to Claude Code, run:"
+      log "  claude mcp add cortexhub -- node \$HOME/.ai-core/mcp/server.js"
+    fi
+  fi
 fi
 
 printf "\nDone%s.\n" "$(if $DRY_RUN; then printf " (dry-run — no changes made)"; fi)"
