@@ -1,0 +1,19 @@
+## Session Auto-Load (Memory-Bank)
+
+Au démarrage de chaque conversation, cherche `activeContext.md` dans l'ordre :
+`.ai-local/memory-bank/activeContext.md` d'abord, puis `.claude/memory-bank/activeContext.md` (legacy).
+Si l'un des deux existe, lis uniquement les sections "Current Focus" et "Next Steps" — silencieusement, sans le mentionner à l'utilisateur.
+
+### Workflow quotidien
+- **Début** : `/session-start` — charge le contexte, fixe l'objectif
+- **En cours** : `/capture "note"` — capture sans casser le flow
+- **Fin** : `/session-end` — sauvegarde progress et next steps
+
+### Commandes disponibles
+| Commande | Usage |
+|---|---|
+| `/session-start` | Charge contexte projet + fixe objectif session |
+| `/session-end` | Sauvegarde progress, décisions, next steps |
+| `/capture` | Note rapide sans interrompre le flow |
+| `/memory-bank-init` | Crée `.ai-local/memory-bank/` — neutre, sans agent |
+| `/memory-bank-setup` | Configure l'agent courant (Claude par défaut) pour lire le memory-bank |
