@@ -3,13 +3,15 @@
     "description": "Fast — vault, notes, simple tasks (local 7B)",
     "base_url": "http://localhost:11434/v1",
     "model": "qwen2.5-coder:7b-instruct-q4_K_M",
-    "api_key": ""
+    "api_key": "",
+    "fallback": "tier2"
   },
   "tier2": {
     "description": "Standard — code, analysis, review (local 14B Q8)",
     "base_url": "http://localhost:11434/v1",
     "model": "qwen2.5-coder:14b-instruct-q8_0",
-    "api_key": ""
+    "api_key": "",
+    "fallback": "tier3"
   },
   "tier3": {
     "description": "Complex — reasoning, architecture (local 32B or cloud)",

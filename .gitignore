@@ -2,3 +2,4 @@
 *.swp
 wrappers/mcp/node_modules/
 core/config/providers.json
+core/logs/

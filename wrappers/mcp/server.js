@@ -200,7 +200,8 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
           max_tokens: args.max_tokens,
           tier: args.tier,
         });
-        const meta = `[${result.tier} · ${result.model}]${result.usage ? ` · ${result.usage.total_tokens} tokens` : ""}`;
+        const fallbackNote = result.fallback_from ? ` ⚡ fallback from ${result.fallback_from}` : "";
+        const meta = `[${result.tier} · ${result.model}${fallbackNote}]${result.usage ? ` · ${result.usage.total_tokens} tokens` : ""}`;
         return { content: [{ type: "text", text: `${meta}\n\n${result.content}` }] };
       } catch (err) {
         return { content: [{ type: "text", text: err.message }], isError: true };
