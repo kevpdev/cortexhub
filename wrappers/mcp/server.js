@@ -5,6 +5,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprot
 import { spawn } from "node:child_process";
 import { homedir } from "node:os";
 import { resolve as resolvePath, join } from "node:path";
+import { routeCompletion, TASK_TYPES } from "./router.js";
 
 const SCRIPTS_DIR = join(homedir(), ".ai-core", "scripts");
 
@@ -123,32 +124,87 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
       },
     },
+    {
+      name: "route_completion",
+      description:
+        "Send a prompt to the appropriate local or cloud model based on task type. Reads ~/.ai-core/config/providers.json for provider config.",
+      inputSchema: {
+        type: "object",
+        required: ["task_type", "messages"],
+        properties: {
+          task_type: {
+            type: "string",
+            enum: TASK_TYPES,
+            description: "Type of task — determines the model tier (tier1=fast/local, tier2=standard, tier3=complex).",
+          },
+          messages: {
+            type: "array",
+            description: "Messages in OpenAI format.",
+            items: {
+              type: "object",
+              required: ["role", "content"],
+              properties: {
+                role: { type: "string", enum: ["system", "user", "assistant"] },
+                content: { type: "string" },
+              },
+            },
+          },
+          max_tokens: {
+            type: "number",
+            description: "Max tokens in response (default: 2048).",
+          },
+          tier: {
+            type: "string",
+            enum: ["tier1", "tier2", "tier3"],
+            description: "Force a specific tier, ignoring task_type routing.",
+          },
+        },
+      },
+    },
   ],
 }));
 
 server.setRequestHandler(CallToolRequestSchema, async (req) => {
   const { name, arguments: args = {} } = req.params;
-  const cwd = resolveProject(args.project_path);
 
   switch (name) {
     case "session_start": {
+      const cwd = resolveProject(args.project_path);
       const scriptArgs = args.goal ? [args.goal] : ["--read"];
       return toContent(await runScript("session-start.sh", scriptArgs, cwd));
     }
     case "session_end": {
+      const cwd = resolveProject(args.project_path);
       const scriptArgs = ["--accomplished", args.accomplished, "--next", args.next];
       if (args.challenges) scriptArgs.push("--challenges", args.challenges);
       return toContent(await runScript("session-end.sh", scriptArgs, cwd));
     }
     case "capture": {
+      const cwd = resolveProject(args.project_path);
       return toContent(await runScript("capture.sh", [args.note], cwd));
     }
     case "memory_bank_init": {
+      const cwd = resolveProject(args.project_path);
       return toContent(await runScript("memory-bank-init.sh", [args.mode], cwd));
     }
     case "memory_bank_setup": {
+      const cwd = resolveProject(args.project_path);
       const agent = args.agent ?? "claude";
       return toContent(await runScript("memory-bank-setup.sh", [agent], cwd));
+    }
+    case "route_completion": {
+      try {
+        const result = await routeCompletion({
+          task_type: args.task_type,
+          messages: args.messages,
+          max_tokens: args.max_tokens,
+          tier: args.tier,
+        });
+        const meta = `[${result.tier} · ${result.model}]${result.usage ? ` · ${result.usage.total_tokens} tokens` : ""}`;
+        return { content: [{ type: "text", text: `${meta}\n\n${result.content}` }] };
+      } catch (err) {
+        return { content: [{ type: "text", text: err.message }], isError: true };
+      }
     }
     default:
       return { content: [{ type: "text", text: `Unknown tool: ${name}` }], isError: true };

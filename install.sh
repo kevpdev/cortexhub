@@ -94,11 +94,6 @@ if $UNINSTALL; then
   printf "\nRemoving ~/.claude/MEMORY-BANK-GUIDE.md\n"
   remove_symlink "$HOME/.claude/MEMORY-BANK-GUIDE.md"
 
-  if $INSTALL_MCP; then
-    printf "\nRemoving ~/.ai-core/mcp symlink\n"
-    remove_symlink "$HOME/.ai-core/mcp"
-  fi
-
   printf "\nDone.\n"
   exit 0
 fi
@@ -140,8 +135,21 @@ else
   log_ok "snippet injected into $CLAUDE_MD"
 fi
 
+printf "\n6. providers.json\n"
+PROVIDERS_EXAMPLE="$CORE_DIR/config/providers.json.example"
+PROVIDERS_DEST="$CORE_DIR/config/providers.json"
+if $DRY_RUN; then
+  log_dry "copy providers.json.example → providers.json (if not exists)"
+elif [ -f "$PROVIDERS_DEST" ]; then
+  log_ok "providers.json already exists — skipping"
+else
+  cp "$PROVIDERS_EXAMPLE" "$PROVIDERS_DEST"
+  log_ok "providers.json created from example"
+  log "Edit ~/.ai-core/config/providers.json to configure your models"
+fi
+
 if $INSTALL_MCP; then
-  printf "\n6. MCP server\n"
+  printf "\n7. MCP server\n"
   if $DRY_RUN; then
     log_dry "npm install in $MCP_WRAPPER"
     log_dry "symlink ~/.ai-core/mcp → $MCP_WRAPPER"

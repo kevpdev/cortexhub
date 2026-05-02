@@ -36,6 +36,37 @@ Ou dans `.mcp.json` du projet :
 }
 ```
 
+## Connexion à Cursor
+
+Dans `.cursor/mcp.json` (projet) ou `~/.cursor/mcp.json` (global) :
+
+```json
+{
+  "mcpServers": {
+    "cortexhub": {
+      "command": "node",
+      "args": ["/home/<user>/.ai-core/mcp/server.js"]
+    }
+  }
+}
+```
+
+## Connexion à Continue.dev
+
+Dans `~/.continue/config.json` :
+
+```json
+{
+  "mcpServers": [
+    {
+      "name": "cortexhub",
+      "command": "node",
+      "args": ["/home/<user>/.ai-core/mcp/server.js"]
+    }
+  ]
+}
+```
+
 ## Connexion à Open WebUI
 
 1. Settings → Tools → MCP Servers
@@ -63,5 +94,6 @@ export CORTEXHUB_PROJECT=/path/to/my-project
 | `capture` | Note rapide dans le memory-bank | `note` |
 | `memory_bank_init` | Initialise `.ai-local/memory-bank/` | `mode` (solo\|shared) |
 | `memory_bank_setup` | Configure l'agent cible | `agent?` (claude\|cursor\|windsurf) |
+| `route_completion` | Délègue une completion au bon modèle | `task_type`, `messages` |
 
 Tous acceptent `project_path` (optionnel) pour cibler un projet spécifique.
