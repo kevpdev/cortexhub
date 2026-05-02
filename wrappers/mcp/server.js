@@ -3,11 +3,13 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { spawn } from "node:child_process";
+import { readdir, readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { resolve as resolvePath, join } from "node:path";
 import { routeCompletion, TASK_TYPES } from "./router.js";
 
 const SCRIPTS_DIR = join(homedir(), ".ai-core", "scripts");
+const SKILLS_DIR  = join(homedir(), ".ai-core", "skills");
 
 // Spawn a core script with args array — no shell interpolation, no injection risk.
 function runScript(scriptName, args, cwd) {
@@ -125,6 +127,29 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
+      name: "list_skills",
+      description: "List all available CortexHub skills (code-reviewer, security-reviewer, etc.).",
+      inputSchema: { type: "object", properties: {} },
+    },
+    {
+      name: "get_skill",
+      description: "Return the full instructions of a CortexHub skill. Use this to load expert behavior into your context before a task.",
+      inputSchema: {
+        type: "object",
+        required: ["name"],
+        properties: {
+          name: {
+            type: "string",
+            description: "Skill name (e.g. code-reviewer, security-reviewer, backend-architect).",
+          },
+          section: {
+            type: "string",
+            description: "Optional reference file inside the skill's references/ folder (e.g. 'checklist-typescript.md').",
+          },
+        },
+      },
+    },
+    {
       name: "route_completion",
       description:
         "Send a prompt to the appropriate local or cloud model based on task type. Reads ~/.ai-core/config/providers.json for provider config.",
@@ -191,6 +216,35 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       const cwd = resolveProject(args.project_path);
       const agent = args.agent ?? "claude";
       return toContent(await runScript("memory-bank-setup.sh", [agent], cwd));
+    }
+    case "list_skills": {
+      try {
+        const entries = await readdir(SKILLS_DIR, { withFileTypes: true });
+        const skills = entries.filter((e) => e.isDirectory()).map((e) => e.name);
+        return { content: [{ type: "text", text: skills.join("\n") }] };
+      } catch (err) {
+        return { content: [{ type: "text", text: err.message }], isError: true };
+      }
+    }
+    case "get_skill": {
+      try {
+        const entries = await readdir(SKILLS_DIR, { withFileTypes: true });
+        const valid = new Set(entries.filter((e) => e.isDirectory()).map((e) => e.name));
+
+        // Validate name against known skills — prevents path traversal.
+        if (!valid.has(args.name)) {
+          return { content: [{ type: "text", text: `Unknown skill: ${args.name}. Available: ${[...valid].join(", ")}` }], isError: true };
+        }
+
+        const filePath = args.section
+          ? join(SKILLS_DIR, args.name, "references", args.section)
+          : join(SKILLS_DIR, args.name, "SKILL.md");
+
+        const content = await readFile(filePath, "utf-8");
+        return { content: [{ type: "text", text: content }] };
+      } catch (err) {
+        return { content: [{ type: "text", text: err.message }], isError: true };
+      }
     }
     case "route_completion": {
       try {

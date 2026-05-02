@@ -1,6 +1,6 @@
 # CortexHub MCP Server
 
-Expose les scripts core CortexHub (`session-start`, `session-end`, `capture`, `memory-bank-init`, `memory-bank-setup`) comme outils MCP — utilisables par Claude Code, Open WebUI, Cursor, Windsurf, ou tout client MCP.
+Expose le core CortexHub comme outils MCP — scripts de session, skills experts et router multi-modèles — utilisables par Claude Code, Cursor, Continue.dev, Open WebUI, ou tout client MCP.
 
 ## Prérequis
 
@@ -94,6 +94,8 @@ export CORTEXHUB_PROJECT=/path/to/my-project
 | `capture` | Note rapide dans le memory-bank | `note` |
 | `memory_bank_init` | Initialise `.ai-local/memory-bank/` | `mode` (solo\|shared) |
 | `memory_bank_setup` | Configure l'agent cible | `agent?` (claude\|cursor\|windsurf) |
+| `list_skills` | Liste les skills disponibles | — |
+| `get_skill` | Retourne les instructions d'un skill | `name` |
 | `route_completion` | Délègue une completion au bon modèle | `task_type`, `messages` |
 
 Tous acceptent `project_path` (optionnel) pour cibler un projet spécifique.
