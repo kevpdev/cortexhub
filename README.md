@@ -1,6 +1,6 @@
 # CortexHub
 
-Agent-agnostic AI config core. Skills, scripts, and workflows live in `core/` — each AI agent connects via a thin wrapper that calls the same scripts.
+Agent-agnostic AI config core. Skills, scripts, and workflows live in `core/` — each AI tool connects via a thin wrapper that calls the same scripts.
 
 ## Architecture
 
@@ -13,101 +13,72 @@ core/                          ← source of truth, zero vendor dependencies
 
 wrappers/
   claude/    commands/*.md     ← Claude Code slash commands → call scripts
+             agents/*.md       ← Claude sub-agents (doc-writer, websearch, …)
   cursor/    commands/*.md     ← Cursor slash commands     → call scripts
-  mcp/       server.js         ← MCP server (route_completion + browser agents)
+  opencode/  gateway.js        ← Ollama model router
+  mcp/       server.js         ← MCP server for shell-less environments
 
-WORKFLOWS.md                   ← universal workflow contract (V1, 8 workflows)
+WORKFLOWS.md                   ← universal workflow contract
 install.sh                     ← sets up symlinks on a new machine
 ```
 
-**Core principle:** Scripts are the public API. Wrappers translate agent-native UX into script calls. MCP is a specialized consumer for cases where shell is unavailable.
-
-## Quick Setup (Fresh Install)
-
-### Prerequisites
-
-Before running the installer, ensure you have:
-
-| Tool | Check | Install (Linux) |
-|---|---|---|
-| Claude Code | `claude --version` | [Download](https://claude.ai/download) |
-| `jq` | `jq --version` | `sudo apt install jq` |
-| Git + SSH key | `ssh -T git@github.com` | [Setup guide](https://docs.github.com/en/authentication/connecting-to-github-with-ssh) |
-
-### Installation Steps
-
-```bash
-# Clone the repo
-git clone git@github.com:kevpdev/cortexhub.git ~/path/to/cortexhub
-cd ~/path/to/cortexhub
-
-# Preview changes (no modifications)
-./install.sh --dry-run
-
-# Run installer (creates symlinks + injects hooks)
-./install.sh
-```
-
-### What Gets Set Up Automatically
-
-The installer configures:
-
-- `~/.ai-core/` → symlink to `core/` (scripts, skills, templates)
-- `~/.claude/skills/` → symlinks to 5 core skills (code-reviewer, security-reviewer, etc.)
-- `~/.claude/commands/` → symlinks to slash commands (`/session-start`, `/plan`, `/epct`, etc.)
-- `~/.claude/CLAUDE.md` → Memory-Bank snippet merged into your global instructions
-- `~/.claude/settings.json` → Session hooks injected (SessionStart, UserPromptSubmit, PreToolUse)
-
-### Verify Installation
-
-Inside Claude Code, run:
-
-```
-/doctor
-```
-
-This validates hook format and configuration. All 3 hooks (SessionStart, UserPromptSubmit, PreToolUse) should show no errors.
-
-### Optional: Add Cursor or MCP
-
-```bash
-# Add Cursor integration
-./install.sh --cursor
-
-# Add MCP server (requires pnpm)
-corepack enable          # once per machine
-./install.sh --mcp       # runs pnpm install automatically
-
-# Add OpenCode/Ollama support
-./install.sh --opencode  # requires Ollama running locally
-```
+**Core principle:** Scripts are the public API. Wrappers translate tool-native UX into script calls.
 
 ---
 
-## Install
+## Quick Setup
+
+### Prerequisites
+
+| Tool | Check | Install (Linux) |
+|---|---|---|
+| `git` | `git --version` | `sudo apt install git` |
+| `jq` | `jq --version` | `sudo apt install jq` |
+| Claude Code | `claude --version` | [claude.ai/download](https://claude.ai/download) |
+
+### Install
 
 ```bash
 git clone git@github.com:kevpdev/cortexhub.git ~/path/to/cortexhub
 cd ~/path/to/cortexhub
-./install.sh --dry-run    # preview
-./install.sh              # core + Claude Code
-./install.sh --cursor     # + Cursor commands
-./install.sh --mcp        # + MCP server
+
+./install.sh --dry-run   # preview what will be done
+./install.sh             # core + Claude Code (default)
 ```
 
-### What install.sh does
+### What the default install sets up
 
-| Flag | Action |
+- `~/.ai-core/` → symlink to `core/` (scripts, skills, templates)
+- `~/.claude/skills/` → 5 core skills (code-reviewer, security-reviewer, …)
+- `~/.claude/commands/` → 14 slash commands (/session-start, /plan, /epct, …)
+- `~/.claude/agents/` → 4 sub-agents (doc-writer, explore-codebase, …)
+- `~/.claude/CLAUDE.md` → Memory-Bank snippet injected
+- `~/.claude/settings.json` → 3 hooks (SessionStart, UserPromptSubmit, PreToolUse)
+
+### Verify
+
+```bash
+/doctor   # inside Claude Code — validates all 33 checks
+```
+
+### install.sh flags
+
+| Command | Result |
 |---|---|
-| *(none)* | Core + Claude Code (symlinks + CLAUDE.md snippet) |
-| `--cursor` | Symlinks 8 commands to `~/.cursor/commands/` |
-| `--mcp` | pnpm install + symlink `~/.ai-core/mcp` + setup instructions |
-| `--dry-run` | Preview without changes |
-| `--uninstall` | Remove everything installed |
+| `./install.sh` | core + Claude Code |
+| `./install.sh --cursor` | core + Cursor |
+| `./install.sh --cursor --claude` | core + Cursor + Claude Code |
+| `./install.sh --opencode` | core + OpenCode/Ollama |
+| `./install.sh --opencode --claude` | core + OpenCode + Claude Code |
+| `./install.sh --mcp` | adds MCP server (any combination) |
+| `./install.sh --dry-run` | preview without changes |
+| `./install.sh --uninstall [flags]` | remove installed symlinks |
 
-## Workflows (V1 — 8 universal)
+> `--mcp` requires Node 24+ and pnpm (`corepack enable`).
 
-All Tier 1 agents expose the same workflows. See [`WORKFLOWS.md`](WORKFLOWS.md) for the full contract.
+---
+
+## Workflows (V1)
 
 | Workflow | Claude Code | Cursor | OpenCode |
 |---|---|---|---|
@@ -115,15 +86,16 @@ All Tier 1 agents expose the same workflows. See [`WORKFLOWS.md`](WORKFLOWS.md) 
 | `/session-end` | ✅ | ✅ | ✅ |
 | `/capture <note>` | ✅ | ✅ | ✅ |
 | `/memory-bank-init` | ✅ | ✅ | ✅ |
-| `/memory-bank-setup [agent]` | ✅ | ✅ | ✅ |
+| `/memory-bank-setup` | ✅ | ✅ | ✅ |
 | `/plan <description>` | ✅ | ✅ | ✅ |
-| `/epct <description>` | ✅ | ✅ | ✅ |
+| `/epct` | ✅ | ✅ | ✅ |
 | `/create-pull-request` | ✅ | ✅ | ✅ |
-| `/skill <name>` | ✅ (natif) | ✅ | ✅ |
+
+See [`WORKFLOWS.md`](WORKFLOWS.md) for the full contract.
+
+---
 
 ## Skills (core)
-
-Portable across all agents via `get_skill` MCP tool or direct file load.
 
 | Skill | Role |
 |---|---|
@@ -132,6 +104,8 @@ Portable across all agents via `get_skill` MCP tool or direct file load.
 | `backend-architect` | API design, architecture patterns |
 | `frontend-expert` | SSR/CSR, a11y, state management |
 | `database-expert` | Schema, indexing, migrations |
+
+---
 
 ## Compatibility
 
@@ -142,9 +116,11 @@ Portable across all agents via `get_skill` MCP tool or direct file load.
 | WSL2 | ✅ |
 | Windows native | Out of scope |
 
+---
+
 ## References
 
 - [`WORKFLOWS.md`](WORKFLOWS.md) — workflow contract, agent × workflow matrix
 - [`core/docs/SCRIPTS-CONTRACT.md`](core/docs/SCRIPTS-CONTRACT.md) — scripts args, exit codes, output format
 - [`docs/MCP-VS-SCRIPTS.md`](docs/MCP-VS-SCRIPTS.md) — when to use MCP vs direct scripts
-- [`wrappers/mcp/capabilities.md`](wrappers/mcp/capabilities.md) — MCP server capabilities by agent
+- [`wrappers/mcp/capabilities.md`](wrappers/mcp/capabilities.md) — MCP server capabilities

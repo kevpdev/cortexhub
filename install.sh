@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # install.sh — CortexHub installer
-# Sets up ~/.ai-core/ and Claude Code wrappers via symlinks.
+# Sets up ~/.ai-core/ (provider-agnostic core) and AI tool wrappers via symlinks.
 # Safe to re-run (idempotent). Detects conflicts before acting.
 #
 # Usage:
-#   ./install.sh                     — full install (core + Claude wrapper)
-#   ./install.sh --cursor            — also install Cursor commands
-#   ./install.sh --opencode          — also install OpenCode + Ollama gateway
-#   ./install.sh --mcp               — also install MCP server
+#   ./install.sh                     — core + Claude Code wrappers (default)
+#   ./install.sh --cursor            — core + Cursor only
+#   ./install.sh --cursor --claude   — core + Cursor + Claude
+#   ./install.sh --opencode          — core + OpenCode only
+#   ./install.sh --opencode --claude — core + OpenCode + Claude
+#   ./install.sh --mcp               — also install MCP server (any combo)
 #   ./install.sh --dry-run           — show what would be done, no changes
 #   ./install.sh --uninstall [flags] — remove what was installed
 set -euo pipefail
@@ -21,6 +23,8 @@ OPENCODE_WRAPPER="$REPO_DIR/wrappers/opencode"
 
 DRY_RUN=false
 UNINSTALL=false
+EXPLICIT_CLAUDE=false
+INSTALL_CLAUDE=false
 INSTALL_MCP=false
 INSTALL_CURSOR=false
 INSTALL_OPENCODE=false
@@ -29,12 +33,21 @@ for arg in "$@"; do
   case "$arg" in
     --dry-run)   DRY_RUN=true ;;
     --uninstall) UNINSTALL=true ;;
+    --claude)    EXPLICIT_CLAUDE=true ;;
     --mcp)       INSTALL_MCP=true ;;
     --cursor)    INSTALL_CURSOR=true ;;
     --opencode)  INSTALL_OPENCODE=true ;;
-    *) printf "Unknown option: %s\nUsage: install.sh [--dry-run|--uninstall|--cursor|--opencode|--mcp]\n" "$arg"; exit 1 ;;
+    *) printf "Unknown option: %s\nUsage: install.sh [--dry-run|--uninstall|--claude|--cursor|--opencode|--mcp]\n" "$arg"; exit 1 ;;
   esac
 done
+
+# Claude is the default when no other wrapper is requested
+if ! $INSTALL_CURSOR && ! $INSTALL_OPENCODE; then
+  INSTALL_CLAUDE=true
+fi
+if $EXPLICIT_CLAUDE; then
+  INSTALL_CLAUDE=true
+fi
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -88,25 +101,27 @@ if $UNINSTALL; then
   printf "Removing ~/.ai-core\n"
   remove_symlink "$HOME/.ai-core"
 
-  printf "\nRemoving ~/.claude/skills wrappers\n"
-  for skill in backend-architect code-reviewer database-expert frontend-expert security-reviewer; do
-    remove_symlink "$HOME/.claude/skills/$skill"
-  done
+  if $INSTALL_CLAUDE; then
+    printf "\nRemoving ~/.claude/skills wrappers\n"
+    for skill in backend-architect code-reviewer database-expert frontend-expert security-reviewer; do
+      remove_symlink "$HOME/.claude/skills/$skill"
+    done
 
-  printf "\nRemoving ~/.claude/commands wrappers\n"
-  for cmd in "$CLAUDE_WRAPPER/commands/"*.md; do
-    name="$(basename "$cmd")"
-    remove_symlink "$HOME/.claude/commands/$name"
-  done
+    printf "\nRemoving ~/.claude/commands wrappers\n"
+    for cmd in "$CLAUDE_WRAPPER/commands/"*.md; do
+      name="$(basename "$cmd")"
+      remove_symlink "$HOME/.claude/commands/$name"
+    done
 
-  printf "\nRemoving ~/.claude/agents wrappers\n"
-  for agent in "$CLAUDE_WRAPPER/agents/"*.md; do
-    name="$(basename "$agent")"
-    remove_symlink "$HOME/.claude/agents/$name"
-  done
+    printf "\nRemoving ~/.claude/agents wrappers\n"
+    for agent in "$CLAUDE_WRAPPER/agents/"*.md; do
+      name="$(basename "$agent")"
+      remove_symlink "$HOME/.claude/agents/$name"
+    done
 
-  printf "\nRemoving ~/.claude/MEMORY-BANK-GUIDE.md\n"
-  remove_symlink "$HOME/.claude/MEMORY-BANK-GUIDE.md"
+    printf "\nRemoving ~/.claude/MEMORY-BANK-GUIDE.md\n"
+    remove_symlink "$HOME/.claude/MEMORY-BANK-GUIDE.md"
+  fi
 
   if $INSTALL_CURSOR; then
     printf "\nRemoving ~/.cursor/commands wrappers\n"
@@ -148,66 +163,68 @@ mkdir -p "$HOME/.claude"
 printf "1. Core — ~/.ai-core → %s/core\n" "$REPO_DIR"
 make_symlink "$CORE_DIR" "$HOME/.ai-core"
 
-printf "\n2. Claude skills wrappers\n"
-mkdir -p "$HOME/.claude/skills"
-for skill in backend-architect code-reviewer database-expert frontend-expert security-reviewer; do
-  make_symlink "$CORE_DIR/skills/$skill" "$HOME/.claude/skills/$skill"
-done
+if $INSTALL_CLAUDE; then
+  printf "\n2. Claude skills wrappers\n"
+  mkdir -p "$HOME/.claude/skills"
+  for skill in backend-architect code-reviewer database-expert frontend-expert security-reviewer; do
+    make_symlink "$CORE_DIR/skills/$skill" "$HOME/.claude/skills/$skill"
+  done
 
-printf "\n3. Claude commands wrappers\n"
-mkdir -p "$HOME/.claude/commands"
-for cmd in "$CLAUDE_WRAPPER/commands/"*.md; do
-  name="$(basename "$cmd")"
-  make_symlink "$cmd" "$HOME/.claude/commands/$name"
-done
+  printf "\n3. Claude commands wrappers\n"
+  mkdir -p "$HOME/.claude/commands"
+  for cmd in "$CLAUDE_WRAPPER/commands/"*.md; do
+    name="$(basename "$cmd")"
+    make_symlink "$cmd" "$HOME/.claude/commands/$name"
+  done
 
-printf "\n4. Claude agents wrappers\n"
-mkdir -p "$HOME/.claude/agents"
-for agent in "$CLAUDE_WRAPPER/agents/"*.md; do
-  name="$(basename "$agent")"
-  make_symlink "$agent" "$HOME/.claude/agents/$name"
-done
+  printf "\n4. Claude agents wrappers\n"
+  mkdir -p "$HOME/.claude/agents"
+  for agent in "$CLAUDE_WRAPPER/agents/"*.md; do
+    name="$(basename "$agent")"
+    make_symlink "$agent" "$HOME/.claude/agents/$name"
+  done
 
-printf "\n6. MEMORY-BANK-GUIDE.md\n"
-make_symlink "$CORE_DIR/docs/MEMORY-BANK-GUIDE.md" "$HOME/.claude/MEMORY-BANK-GUIDE.md"
+  printf "\n5. MEMORY-BANK-GUIDE.md\n"
+  make_symlink "$CORE_DIR/docs/MEMORY-BANK-GUIDE.md" "$HOME/.claude/MEMORY-BANK-GUIDE.md"
 
-printf "\n7. CLAUDE.md snippet\n"
-SNIPPET="$CLAUDE_WRAPPER/CLAUDE.md.snippet"
-CLAUDE_MD="$HOME/.claude/CLAUDE.md"
-MARKER="## Session Auto-Load (Memory-Bank)"
+  printf "\n6. CLAUDE.md snippet\n"
+  SNIPPET="$CLAUDE_WRAPPER/CLAUDE.md.snippet"
+  CLAUDE_MD="$HOME/.claude/CLAUDE.md"
+  MARKER="## Session Auto-Load (Memory-Bank)"
 
-if $DRY_RUN; then
-  log_dry "inject snippet into $CLAUDE_MD (if not already present)"
-elif grep -qF "$MARKER" "$CLAUDE_MD" 2>/dev/null; then
-  log_ok "snippet already present in $CLAUDE_MD"
-else
-  printf "\n" >> "$CLAUDE_MD"
-  cat "$SNIPPET" >> "$CLAUDE_MD"
-  log_ok "snippet injected into $CLAUDE_MD"
-fi
-
-printf "\n8. Claude hook (suggest-skill)\n"
-HOOK_SRC="$CLAUDE_WRAPPER/settings.hook.json"
-SETTINGS_DEST="$HOME/.claude/settings.json"
-HOOK_MARKER="suggest-skill"
-
-if $DRY_RUN; then
-  log_dry "merge hook into $SETTINGS_DEST (if not already present)"
-elif grep -qF "$HOOK_MARKER" "$SETTINGS_DEST" 2>/dev/null; then
-  log_ok "hook already present in $SETTINGS_DEST"
-elif ! command -v jq &>/dev/null; then
-  log_err "jq not found — install jq and re-run to add the suggest-skill hook"
-else
-  if [ -f "$SETTINGS_DEST" ]; then
-    tmp=$(mktemp)
-    jq -s '.[0] * .[1]' "$SETTINGS_DEST" "$HOOK_SRC" > "$tmp" && mv "$tmp" "$SETTINGS_DEST"
+  if $DRY_RUN; then
+    log_dry "inject snippet into $CLAUDE_MD (if not already present)"
+  elif grep -qF "$MARKER" "$CLAUDE_MD" 2>/dev/null; then
+    log_ok "snippet already present in $CLAUDE_MD"
   else
-    cp "$HOOK_SRC" "$SETTINGS_DEST"
+    printf "\n" >> "$CLAUDE_MD"
+    cat "$SNIPPET" >> "$CLAUDE_MD"
+    log_ok "snippet injected into $CLAUDE_MD"
   fi
-  log_ok "hook injected into $SETTINGS_DEST"
+
+  printf "\n7. Claude hook (suggest-skill)\n"
+  HOOK_SRC="$CLAUDE_WRAPPER/settings.hook.json"
+  SETTINGS_DEST="$HOME/.claude/settings.json"
+  HOOK_MARKER="suggest-skill"
+
+  if $DRY_RUN; then
+    log_dry "merge hook into $SETTINGS_DEST (if not already present)"
+  elif grep -qF "$HOOK_MARKER" "$SETTINGS_DEST" 2>/dev/null; then
+    log_ok "hook already present in $SETTINGS_DEST"
+  elif ! command -v jq &>/dev/null; then
+    log_err "jq not found — install jq and re-run to add the suggest-skill hook"
+  else
+    if [ -f "$SETTINGS_DEST" ]; then
+      tmp=$(mktemp)
+      jq -s '.[0] * .[1]' "$SETTINGS_DEST" "$HOOK_SRC" > "$tmp" && mv "$tmp" "$SETTINGS_DEST"
+    else
+      cp "$HOOK_SRC" "$SETTINGS_DEST"
+    fi
+    log_ok "hook injected into $SETTINGS_DEST"
+  fi
 fi
 
-printf "\n9. providers.json\n"
+printf "\n8. providers.json\n"
 PROVIDERS_EXAMPLE="$CORE_DIR/config/providers.json.example"
 PROVIDERS_DEST="$CORE_DIR/config/providers.json"
 if $DRY_RUN; then
