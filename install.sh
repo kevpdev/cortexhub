@@ -143,10 +143,13 @@ fi
 
 printf "\n=== CortexHub install%s ===\n\n" "$(if $DRY_RUN; then printf " (dry-run)"; fi)"
 
+mkdir -p "$HOME/.claude"
+
 printf "1. Core — ~/.ai-core → %s/core\n" "$REPO_DIR"
 make_symlink "$CORE_DIR" "$HOME/.ai-core"
 
 printf "\n2. Claude skills wrappers\n"
+mkdir -p "$HOME/.claude/skills"
 for skill in backend-architect code-reviewer database-expert frontend-expert security-reviewer; do
   make_symlink "$CORE_DIR/skills/$skill" "$HOME/.claude/skills/$skill"
 done
