@@ -37,23 +37,24 @@ done
 # ── Commands ──────────────────────────────────────────────────────────────────
 
 printf "\nCommands\n"
-for cmd in capture create-pull-request epct fix-pr-comments memory-bank-init \
+for cmd in capture create-pull-request doctor epct fix-pr-comments memory-bank-init \
            memory-bank-setup plan plan-to-stories run-tasks session-end \
-           session-start story-create watch-ci; do
+           session-start story-create vault-sync-from-dev watch-ci; do
   check_symlink "$CLAUDE/commands/$cmd.md" "/$cmd"
 done
 
 # ── Agents ────────────────────────────────────────────────────────────────────
 
 printf "\nAgents\n"
-for agent in doc-writer explore-codebase explore-docs websearch; do
+for agent in doc-writer explore-codebase explore-docs vault-sync websearch; do
   check_symlink "$CLAUDE/agents/$agent.md" "$agent"
 done
 
-# ── Docs ──────────────────────────────────────────────────────────────────────
+# ── Docs & config ─────────────────────────────────────────────────────────────
 
-printf "\nDocs\n"
+printf "\nDocs & config\n"
 check_symlink "$CLAUDE/MEMORY-BANK-GUIDE.md" "MEMORY-BANK-GUIDE.md"
+check_symlink "$CLAUDE/vault-sync-config-schema.json" "vault-sync-config-schema.json"
 
 # ── Hooks ─────────────────────────────────────────────────────────────────────
 

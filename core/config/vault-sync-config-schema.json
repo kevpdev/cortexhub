@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Vault Sync Configuration",
+  "description": "Config locale par projet (.claude/vault-sync.json à la racine du projet dev). Le chemin du vault vient de $OBSIDIAN_VAULT_PRO, pas de ce fichier.",
+  "type": "object",
+  "required": ["project", "sync"],
+  "additionalProperties": false,
+  "properties": {
+    "project": {
+      "type": "string",
+      "description": "Nom exact du dossier dans $OBSIDIAN_VAULT_PRO/3 PROJECTS/",
+      "minLength": 1
+    },
+    "dry_run_by_default": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si true, toujours en mode preview — pas d'écriture sans --force"
+    },
+    "sync": {
+      "type": "array",
+      "description": "Mappings source (chemin relatif dev) → target (section dans le vault)",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["label", "source", "target"],
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Nom lisible du mapping, affiché dans le rapport de sync",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "description": "Chemin relatif vers le fichier source dans le projet dev (ex: README.md)"
+          },
+          "target": {
+            "type": "string",
+            "description": "Cible vault : 'fichier.md#Titre Section' — relatif à $OBSIDIAN_VAULT_PRO/3 PROJECTS/{project}/",
+            "pattern": "^[^#]+\\.md#.+$"
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "project": "MON-PROJET",
+      "sync": [
+        {
+          "label": "Vue d'ensemble",
+          "source": "README.md",
+          "target": "project-note.md#Vue d'ensemble"
+        },
+        {
+          "label": "Architecture",
+          "source": "docs/architecture.md",
+          "target": "project-note.md#Contexte technique"
+        }
+      ]
+    }
+  ]
+}

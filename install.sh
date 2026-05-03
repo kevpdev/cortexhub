@@ -119,8 +119,9 @@ if $UNINSTALL; then
       remove_symlink "$HOME/.claude/agents/$name"
     done
 
-    printf "\nRemoving ~/.claude/MEMORY-BANK-GUIDE.md\n"
+    printf "\nRemoving ~/.claude config files\n"
     remove_symlink "$HOME/.claude/MEMORY-BANK-GUIDE.md"
+    remove_symlink "$HOME/.claude/vault-sync-config-schema.json"
   fi
 
   if $INSTALL_CURSOR; then
@@ -184,8 +185,9 @@ if $INSTALL_CLAUDE; then
     make_symlink "$agent" "$HOME/.claude/agents/$name"
   done
 
-  printf "\n5. MEMORY-BANK-GUIDE.md\n"
+  printf "\n5. Claude config files\n"
   make_symlink "$CORE_DIR/docs/MEMORY-BANK-GUIDE.md" "$HOME/.claude/MEMORY-BANK-GUIDE.md"
+  make_symlink "$CORE_DIR/config/vault-sync-config-schema.json" "$HOME/.claude/vault-sync-config-schema.json"
 
   printf "\n6. CLAUDE.md snippet\n"
   SNIPPET="$CLAUDE_WRAPPER/CLAUDE.md.snippet"
