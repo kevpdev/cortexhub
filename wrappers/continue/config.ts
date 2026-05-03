@@ -257,7 +257,20 @@ const createPullRequest: SlashCommand = {
 
 // ─── Config export ───────────────────────────────────────────────────────────
 
+const SKILLS_REMINDER = `When the user's request involves one of these areas, proactively suggest loading the relevant CortexHub skill before starting. Say: "This task involves [area] — do you want me to load the \`[skill]\` skill first?"
+
+| Area | Skill |
+|---|---|
+| Code review, quality, SOLID, readability, refactoring | /skill code-reviewer |
+| Security, auth, secrets, OWASP, injections | /skill security-reviewer |
+| API design, architecture, backend patterns | /skill backend-architect |
+| Frontend, React/Vue/Angular, SSR/CSR, a11y | /skill frontend-expert |
+| Database, SQL/NoSQL, schema, migrations, slow queries | /skill database-expert |
+
+If the skill is already loaded in context, apply it silently without suggesting again.`;
+
 const config: ContinueConfig = {
+  rules: [SKILLS_REMINDER],
   slashCommands: [
     sessionStart,
     sessionEnd,

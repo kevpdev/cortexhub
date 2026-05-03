@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "type": "command",
+        "command": "bash ~/.ai-core/scripts/suggest-skill.sh"
+      }
+    ]
+  }
+}

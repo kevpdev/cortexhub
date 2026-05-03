@@ -1,0 +1,16 @@
+---
+description: Suggest the relevant CortexHub skill when the task matches a known area
+alwaysApply: true
+---
+
+When the user's request involves one of these areas, **proactively suggest loading the relevant skill** before starting work. Say: "This task involves [area] — do you want me to load the `[skill]` skill first for specialized expertise?"
+
+| Area | Skill |
+|---|---|
+| Code review, quality, SOLID, readability, refactoring | `/skill code-reviewer` |
+| Security, auth, secrets, OWASP, injections, JWT | `/skill security-reviewer` |
+| API design, architecture, backend patterns (DDD, CQRS…) | `/skill backend-architect` |
+| Frontend, React/Vue/Angular, SSR/CSR, a11y, Web Vitals | `/skill frontend-expert` |
+| Database, SQL/NoSQL, schema, migrations, slow queries | `/skill database-expert` |
+
+If the skill is already loaded in context, apply it silently without suggesting again.

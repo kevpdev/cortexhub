@@ -156,7 +156,28 @@ else
   log_ok "snippet injected into $CLAUDE_MD"
 fi
 
-printf "\n6. providers.json\n"
+printf "\n6. Claude hook (suggest-skill)\n"
+HOOK_SRC="$CLAUDE_WRAPPER/settings.hook.json"
+SETTINGS_DEST="$HOME/.claude/settings.json"
+HOOK_MARKER="suggest-skill"
+
+if $DRY_RUN; then
+  log_dry "merge hook into $SETTINGS_DEST (if not already present)"
+elif grep -qF "$HOOK_MARKER" "$SETTINGS_DEST" 2>/dev/null; then
+  log_ok "hook already present in $SETTINGS_DEST"
+elif ! command -v jq &>/dev/null; then
+  log_err "jq not found — install jq and re-run to add the suggest-skill hook"
+else
+  if [ -f "$SETTINGS_DEST" ]; then
+    tmp=$(mktemp)
+    jq -s '.[0] * .[1]' "$SETTINGS_DEST" "$HOOK_SRC" > "$tmp" && mv "$tmp" "$SETTINGS_DEST"
+  else
+    cp "$HOOK_SRC" "$SETTINGS_DEST"
+  fi
+  log_ok "hook injected into $SETTINGS_DEST"
+fi
+
+printf "\n7. providers.json\n"
 PROVIDERS_EXAMPLE="$CORE_DIR/config/providers.json.example"
 PROVIDERS_DEST="$CORE_DIR/config/providers.json"
 if $DRY_RUN; then
@@ -170,16 +191,24 @@ else
 fi
 
 if $INSTALL_CURSOR; then
-  printf "\n7. Cursor commands (~/.cursor/commands/)\n"
+  printf "\n8. Cursor commands (~/.cursor/commands/)\n"
   mkdir -p "$HOME/.cursor/commands"
   for cmd in "$CURSOR_WRAPPER/commands/"*.md; do
     name="$(basename "$cmd")"
     make_symlink "$cmd" "$HOME/.cursor/commands/$name"
   done
+
+  printf "\n   Cursor rules (~/.cursor/rules/)\n"
+  mkdir -p "$HOME/.cursor/rules"
+  for rule in "$CURSOR_WRAPPER/rules/"*.mdc; do
+    [ -f "$rule" ] || continue
+    name="$(basename "$rule")"
+    make_symlink "$rule" "$HOME/.cursor/rules/$name"
+  done
 fi
 
 if $INSTALL_CONTINUE; then
-  printf "\n8. Continue.dev config (~/.continue/config.ts)\n"
+  printf "\n9. Continue.dev config (~/.continue/config.ts)\n"
   CONTINUE_DEST="$HOME/.continue/config.ts"
   mkdir -p "$HOME/.continue"
   if $DRY_RUN; then
@@ -194,7 +223,7 @@ if $INSTALL_CONTINUE; then
 fi
 
 if $INSTALL_MCP; then
-  printf "\n9. MCP server\n"
+  printf "\n10. MCP server\n"
   if $DRY_RUN; then
     log_dry "npm install in $MCP_WRAPPER"
     log_dry "symlink ~/.ai-core/mcp → $MCP_WRAPPER"
