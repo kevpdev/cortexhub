@@ -4,27 +4,35 @@
 # Safe to re-run (idempotent). Detects conflicts before acting.
 #
 # Usage:
-#   ./install.sh           — full install (core + Claude wrapper)
-#   ./install.sh --mcp     — also install MCP server (npm install + symlink)
-#   ./install.sh --dry-run — show what would be done, no changes
-#   ./install.sh --uninstall [--mcp] — remove symlinks created by this script
+#   ./install.sh                     — full install (core + Claude wrapper)
+#   ./install.sh --cursor            — also install Cursor commands
+#   ./install.sh --continue          — also install Continue.dev config
+#   ./install.sh --mcp               — also install MCP server
+#   ./install.sh --dry-run           — show what would be done, no changes
+#   ./install.sh --uninstall [flags] — remove what was installed
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CORE_DIR="$REPO_DIR/core"
 CLAUDE_WRAPPER="$REPO_DIR/wrappers/claude"
+CURSOR_WRAPPER="$REPO_DIR/wrappers/cursor"
+CONTINUE_WRAPPER="$REPO_DIR/wrappers/continue"
 MCP_WRAPPER="$REPO_DIR/wrappers/mcp"
 
 DRY_RUN=false
 UNINSTALL=false
 INSTALL_MCP=false
+INSTALL_CURSOR=false
+INSTALL_CONTINUE=false
 
 for arg in "$@"; do
   case "$arg" in
     --dry-run)   DRY_RUN=true ;;
     --uninstall) UNINSTALL=true ;;
     --mcp)       INSTALL_MCP=true ;;
-    *) printf "Unknown option: %s\nUsage: install.sh [--dry-run|--uninstall|--mcp]\n" "$arg"; exit 1 ;;
+    --cursor)    INSTALL_CURSOR=true ;;
+    --continue)  INSTALL_CONTINUE=true ;;
+    *) printf "Unknown option: %s\nUsage: install.sh [--dry-run|--uninstall|--mcp|--cursor|--continue]\n" "$arg"; exit 1 ;;
   esac
 done
 
@@ -94,6 +102,19 @@ if $UNINSTALL; then
   printf "\nRemoving ~/.claude/MEMORY-BANK-GUIDE.md\n"
   remove_symlink "$HOME/.claude/MEMORY-BANK-GUIDE.md"
 
+  if $INSTALL_CURSOR; then
+    printf "\nRemoving ~/.cursor/commands wrappers\n"
+    for cmd in "$CURSOR_WRAPPER/commands/"*.md; do
+      name="$(basename "$cmd")"
+      remove_symlink "$HOME/.cursor/commands/$name"
+    done
+  fi
+
+  if $INSTALL_CONTINUE; then
+    printf "\nNote: ~/.continue/config.ts was not auto-installed via symlink.\n"
+    log "Remove CortexHub entries from ~/.continue/config.ts manually."
+  fi
+
   printf "\nDone.\n"
   exit 0
 fi
@@ -148,8 +169,32 @@ else
   log "Edit ~/.ai-core/config/providers.json to configure your models"
 fi
 
+if $INSTALL_CURSOR; then
+  printf "\n7. Cursor commands (~/.cursor/commands/)\n"
+  mkdir -p "$HOME/.cursor/commands"
+  for cmd in "$CURSOR_WRAPPER/commands/"*.md; do
+    name="$(basename "$cmd")"
+    make_symlink "$cmd" "$HOME/.cursor/commands/$name"
+  done
+fi
+
+if $INSTALL_CONTINUE; then
+  printf "\n8. Continue.dev config (~/.continue/config.ts)\n"
+  CONTINUE_DEST="$HOME/.continue/config.ts"
+  mkdir -p "$HOME/.continue"
+  if $DRY_RUN; then
+    log_dry "copy $CONTINUE_WRAPPER/config.ts → $CONTINUE_DEST (if not exists)"
+  elif [ -f "$CONTINUE_DEST" ]; then
+    log_ok "$CONTINUE_DEST already exists — skipping (merge manually if needed)"
+    log "Reference: $CONTINUE_WRAPPER/config.ts"
+  else
+    cp "$CONTINUE_WRAPPER/config.ts" "$CONTINUE_DEST"
+    log_ok "config.ts installed at $CONTINUE_DEST"
+  fi
+fi
+
 if $INSTALL_MCP; then
-  printf "\n7. MCP server\n"
+  printf "\n9. MCP server\n"
   if $DRY_RUN; then
     log_dry "npm install in $MCP_WRAPPER"
     log_dry "symlink ~/.ai-core/mcp → $MCP_WRAPPER"
