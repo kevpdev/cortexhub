@@ -1,61 +1,69 @@
 # CortexHub
 
-Agent-agnostic AI config core. Skills, scripts, and templates live in `core/` — each AI agent connects via a thin wrapper.
+Agent-agnostic AI config core. Skills, scripts, and workflows live in `core/` — each AI agent connects via a thin wrapper that calls the same scripts.
 
 ## Architecture
 
 ```
-core/                          ← source of truth, no vendor dependencies
-  scripts/                     ← shell scripts (memory-bank, session, capture)
-  skills/                      ← portable AI skills (code-reviewer, security-reviewer, …)
+core/                          ← source of truth, zero vendor dependencies
+  scripts/                     ← shell scripts (the public API)
+  skills/                      ← portable AI skills (code-reviewer, …)
   templates/memory-bank/       ← projectbrief, techContext, activeContext
-  docs/                        ← guides (MEMORY-BANK-GUIDE.md)
+  docs/                        ← MEMORY-BANK-GUIDE.md, SCRIPTS-CONTRACT.md
 
 wrappers/
-  claude/
-    commands/                  ← Claude Code slash commands
-    CLAUDE.md.snippet          ← snippet to inject into ~/.claude/CLAUDE.md
+  claude/    commands/*.md     ← Claude Code slash commands → call scripts
+  cursor/    commands/*.md     ← Cursor slash commands     → call scripts
+  continue/  config.ts         ← Continue.dev slash cmds   → call scripts
+  mcp/       server.js         ← MCP server (route_completion + browser agents)
 
+WORKFLOWS.md                   ← universal workflow contract (V1, 8 workflows)
 install.sh                     ← sets up symlinks on a new machine
 ```
 
-**Principle:** `core/` runs without any AI agent. Wrappers only point to it — they never modify data.
+**Core principle:** Scripts are the public API. Wrappers translate agent-native UX into script calls. MCP is a specialized consumer for cases where shell is unavailable.
 
 ## Install
 
 ```bash
-git clone <repo> ~/path/to/cortexhub
+git clone git@github.com:kevpdev/cortexhub.git ~/path/to/cortexhub
 cd ~/path/to/cortexhub
-./install.sh --dry-run   # preview
-./install.sh             # apply
+./install.sh --dry-run    # preview
+./install.sh              # core + Claude Code
+./install.sh --cursor     # + Cursor commands
+./install.sh --continue   # + Continue.dev config
+./install.sh --mcp        # + MCP server
 ```
 
 ### What install.sh does
 
-| Action | Result |
+| Flag | Action |
 |---|---|
-| `~/.ai-core` → `core/` | Symlink — git pull auto-updates the core |
-| `~/.claude/skills/<skill>` → `core/skills/<skill>` | 5 portable skills wired to Claude |
-| `~/.claude/commands/<cmd>` → `wrappers/claude/commands/<cmd>` | Slash commands wired to Claude |
-| `~/.claude/MEMORY-BANK-GUIDE.md` → `core/docs/` | Guide always up to date |
-| `~/.claude/CLAUDE.md` | Session auto-load snippet injected (once) |
+| *(none)* | Core + Claude Code (symlinks + CLAUDE.md snippet) |
+| `--cursor` | Symlinks 8 commands to `~/.cursor/commands/` |
+| `--continue` | Copies `config.ts` to `~/.continue/config.ts` |
+| `--mcp` | npm install + symlink `~/.ai-core/mcp` + setup instructions |
+| `--dry-run` | Preview without changes |
+| `--uninstall` | Remove everything installed |
 
-### Uninstall
+## Workflows (V1 — 8 universal)
 
-```bash
-./install.sh --uninstall
-```
+All Tier 1 agents expose the same workflows. See [`WORKFLOWS.md`](WORKFLOWS.md) for the full contract.
 
-## Compatibility
-
-| Platform | Status |
-|---|---|
-| Linux | Supported |
-| macOS | Supported (requires Bash 4+ via Homebrew) |
-| WSL2 | Supported |
-| Windows native | Out of scope |
+| Workflow | Claude Code | Cursor | Continue.dev |
+|---|---|---|---|
+| `/session-start [goal]` | ✅ | ✅ | ✅ |
+| `/session-end` | ✅ | ✅ | ✅ |
+| `/capture <note>` | ✅ | ✅ | ✅ |
+| `/memory-bank-init` | ✅ | ✅ | ✅ |
+| `/memory-bank-setup [agent]` | ✅ | ✅ | ✅ |
+| `/plan <description>` | ✅ | ✅ | ✅ |
+| `/epct <description>` | ✅ | ✅ | ✅ |
+| `/create-pull-request` | ✅ | ✅ | ✅ |
 
 ## Skills (core)
+
+Portable across all agents via `get_skill` MCP tool or direct file load.
 
 | Skill | Role |
 |---|---|
@@ -65,11 +73,18 @@ cd ~/path/to/cortexhub
 | `frontend-expert` | SSR/CSR, a11y, state management |
 | `database-expert` | Schema, indexing, migrations |
 
-## Wrappers
+## Compatibility
 
-| Agent | Status |
+| Platform | Status |
 |---|---|
-| Claude Code | Implemented |
-| Cursor | Planned (Phase 5) |
-| Windsurf | Planned (Phase 5) |
-| Ollama | Out of scope (Phase 6) |
+| Linux | ✅ |
+| macOS | ✅ (Bash 4+ via Homebrew) |
+| WSL2 | ✅ |
+| Windows native | Out of scope |
+
+## References
+
+- [`WORKFLOWS.md`](WORKFLOWS.md) — workflow contract, agent × workflow matrix
+- [`core/docs/SCRIPTS-CONTRACT.md`](core/docs/SCRIPTS-CONTRACT.md) — scripts args, exit codes, output format
+- [`docs/MCP-VS-SCRIPTS.md`](docs/MCP-VS-SCRIPTS.md) — when to use MCP vs direct scripts
+- [`wrappers/mcp/capabilities.md`](wrappers/mcp/capabilities.md) — MCP server capabilities by agent
