@@ -2,20 +2,35 @@
   "hooks": {
     "SessionStart": [
       {
-        "type": "command",
-        "command": "bash ~/.ai-core/scripts/session-context-load.sh"
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.ai-core/scripts/session-context-load.sh"
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
       {
-        "type": "command",
-        "command": "bash ~/.ai-core/scripts/suggest-skill.sh"
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.ai-core/scripts/suggest-skill.sh"
+          }
+        ]
       }
     ],
     "PreToolUse": [
       {
-        "type": "command",
-        "command": "bash ~/.ai-core/scripts/guard-no-claude-in-commit.sh"
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.ai-core/scripts/guard-no-claude-in-commit.sh"
+          }
+        ]
       }
     ]
   }

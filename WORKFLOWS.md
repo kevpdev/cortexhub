@@ -1,6 +1,6 @@
 # CortexHub — Workflow Contract (V1)
 
-This document defines the universal workflow contract that every Tier 1 wrapper (Claude Code, Cursor, Continue.dev) must implement.
+This document defines the universal workflow contract that every Tier 1 wrapper (Claude Code, Cursor, OpenCode) must implement.
 
 ## Principles
 
@@ -111,7 +111,7 @@ This document defines the universal workflow contract that every Tier 1 wrapper 
 **Script** — None (pure agent methodology workflow).
 
 **Expected behavior**
-1. **Explore** — gather context via the agent's native exploration capabilities (subagents in Claude, @-mentions in Cursor, codebase indexing in Continue, etc.).
+1. **Explore** — gather context via the agent's native exploration capabilities (subagents in Claude, @-mentions in Cursor, context tools in OpenCode, etc.).
 2. **Plan** — produce a structured plan with:
    - Objective (one sentence)
    - Files to change (with reason)
@@ -185,20 +185,43 @@ This document defines the universal workflow contract that every Tier 1 wrapper 
 
 ## Implementation matrix
 
-| Workflow | Claude Code | Cursor | Continue.dev |
+| Workflow | Claude Code | Cursor | OpenCode |
 |---|---|---|---|
-| session-start | ✅ slash command `.md` | ✅ `.cursor/commands/` | ✅ `config.ts` run() |
-| session-end | ✅ | ✅ | ✅ run() |
-| capture | ✅ | ✅ | ✅ run() |
-| memory-bank-init | ✅ | ✅ | ✅ run() |
-| memory-bank-setup | ✅ | ✅ | ✅ run() |
-| plan | ✅ | ✅ | ✅ prompt |
-| epct | ✅ | ✅ | ✅ prompt |
-| create-pull-request | ✅ | ✅ | ✅ prompt |
-| skill | ✅ natif | ✅ `.cursor/commands/` | ✅ `config.ts` run() |
+| session-start | ✅ slash command `.md` | ✅ `.cursor/commands/` | ✅ `opencode.json` |
+| session-end | ✅ | ✅ | ✅ |
+| capture | ✅ | ✅ | ✅ |
+| memory-bank-init | ✅ | ✅ | ✅ |
+| memory-bank-setup | ✅ | ✅ | ✅ |
+| plan | ✅ | ✅ | ✅ |
+| epct | ✅ | ✅ | ✅ |
+| create-pull-request | ✅ | ✅ | ✅ |
+| skill | ✅ natif | ✅ `.cursor/commands/` | ✅ |
+
+---
+
+## Claude Code Agents
+
+Claude Code offers four specialized sub-agents (isolated context, targeted model) for domain-specific tasks. **These are Claude Code-only** — not available in Cursor or OpenCode. Activate by mentioning the agent name in your request or using `/agent:<name>`.
+
+| Agent | Purpose | Activation |
+|---|---|---|
+| **doc-writer** | Generate or update technical documentation: Javadoc, JSDoc/TypeDoc, README, OpenAPI, inline comments. Precise, developer-oriented, respects project conventions. | "Document this function", "Generate JSDoc", "Write the README", "Document this endpoint" |
+| **explore-codebase** | Comprehensive codebase exploration to find all relevant code for a feature. Discovers patterns, dependencies, tests, and existing implementations via parallel grep + read strategy. | "Explore the codebase for X", "Find where Y is implemented", "Show me related code" |
+| **explore-docs** | Retrieve precise library documentation with code examples. Uses Context7 for library docs + WebFetch fallback. Filters for essentials: code examples, API specs, configuration, common pitfalls. | "How do I use X with Y library?", "Show me X library examples", "Document search for Y" |
+| **websearch** | Fast web search for accurate information. Fetches authoritative sources and summarizes concisely with sources. | "Search for X", "Find information about Y" |
+
+Each agent is Haiku-optimized for speed and focused on a single responsibility. Load them automatically when their domain is mentioned in your request.
+
+---
 
 ## Out of V1
 
 - `fix-pr-comments`, `watch-ci`, `run-tasks` — require GitHub API integration. Deferred to V1.1.
 - `plan-to-stories`, `story-create` — BMAD methodology, niche audience. Deferred to V1.1.
 - `init-node-ts` — narrow tech-specific bootstrap. Out of scope.
+
+## Known limitations
+
+**OpenCode — probabilistic workflows** : OpenCode has no native hooks or slash command system. Session/capture workflows are triggered by the model based on context — reliable on 14B+ (recommended default), degraded on 7/8B (constrained machines). Claude Code and Cursor remain the primary agents for deterministic workflows.
+
+Planned for V1.1 : native OpenCode hooks support or shell wrapper commands (`oc-session`, `oc-capture`) as a deterministic fallback.

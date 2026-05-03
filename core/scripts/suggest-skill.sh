@@ -21,7 +21,7 @@ lower=$(printf "%s" "$prompt" | tr '[:upper:]' '[:lower:]')
 
 if printf "%s" "$lower" | grep -qE "review|qualit|lisibilit|solid|mainten|refactor|propre|clean code"; then
   skill="code-reviewer"
-elif printf "%s" "$lower" | grep -qE "securit|auth|secret|inject|owasp|vuln|token|jwt|permiss|xss|csrf"; then
+elif printf "%s" "$lower" | grep -qE "s[eé]curit|auth|secret|inject|owasp|vuln|token|jwt|permiss|xss|csrf"; then
   skill="security-reviewer"
 elif printf "%s" "$lower" | grep -qE "architect|api|rest|graphql|microserv|monolith|backend|design pattern|ddd|cqrs|hexagonal"; then
   skill="backend-architect"
@@ -29,6 +29,8 @@ elif printf "%s" "$lower" | grep -qE "frontend|react|vue|angular|next|nuxt|ssr|c
   skill="frontend-expert"
 elif printf "%s" "$lower" | grep -qE "database|sql|nosql|schema|index|migration|query|postgres|mongo|redis|explain|lent|slow"; then
   skill="database-expert"
+elif printf "%s" "$lower" | grep -qE "documente|javadoc|jsdoc|readme|openapi|swagger|commente|doc technique|mise.?à.?jour.*doc"; then
+  skill="doc-writer"
 else
   exit 0
 fi

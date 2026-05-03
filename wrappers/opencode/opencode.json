@@ -1,0 +1,40 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "ollama/qwen2.5-coder:7b-instruct-q4_K_M",
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "http://localhost:11434/v1",
+        "name": "Ollama"
+      },
+      "models": {
+        "qwen2.5-coder:7b-instruct-q4_K_M": {
+          "name": "Qwen2.5 Coder 7B — code (default)"
+        },
+        "qwen2.5-coder:14b-instruct-q8_0": {
+          "name": "Qwen2.5 Coder 14B — code (heavy)"
+        },
+        "qwen2.5-coder:32b-instruct-q3_K_M": {
+          "name": "Qwen2.5 Coder 32B — code (max)"
+        },
+        "llama3.2:3b": {
+          "name": "Llama 3.2 3B — vault / notes"
+        },
+        "gemma3:4b": {
+          "name": "Gemma 3 4B — daily tasks"
+        },
+        "minicpm-v:8b": {
+          "name": "MiniCPM-V 8B — OCR / vision"
+        }
+      }
+    }
+  },
+  "mcp": {
+    "cortexhub": {
+      "type": "local",
+      "command": "node",
+      "args": ["~/.ai-core/mcp/server.js"]
+    }
+  }
+}

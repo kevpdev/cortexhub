@@ -6,7 +6,7 @@
 # Usage:
 #   ./install.sh                     — full install (core + Claude wrapper)
 #   ./install.sh --cursor            — also install Cursor commands
-#   ./install.sh --continue          — also install Continue.dev config
+#   ./install.sh --opencode          — also install OpenCode + Ollama gateway
 #   ./install.sh --mcp               — also install MCP server
 #   ./install.sh --dry-run           — show what would be done, no changes
 #   ./install.sh --uninstall [flags] — remove what was installed
@@ -16,14 +16,14 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CORE_DIR="$REPO_DIR/core"
 CLAUDE_WRAPPER="$REPO_DIR/wrappers/claude"
 CURSOR_WRAPPER="$REPO_DIR/wrappers/cursor"
-CONTINUE_WRAPPER="$REPO_DIR/wrappers/continue"
 MCP_WRAPPER="$REPO_DIR/wrappers/mcp"
+OPENCODE_WRAPPER="$REPO_DIR/wrappers/opencode"
 
 DRY_RUN=false
 UNINSTALL=false
 INSTALL_MCP=false
 INSTALL_CURSOR=false
-INSTALL_CONTINUE=false
+INSTALL_OPENCODE=false
 
 for arg in "$@"; do
   case "$arg" in
@@ -31,8 +31,8 @@ for arg in "$@"; do
     --uninstall) UNINSTALL=true ;;
     --mcp)       INSTALL_MCP=true ;;
     --cursor)    INSTALL_CURSOR=true ;;
-    --continue)  INSTALL_CONTINUE=true ;;
-    *) printf "Unknown option: %s\nUsage: install.sh [--dry-run|--uninstall|--mcp|--cursor|--continue]\n" "$arg"; exit 1 ;;
+    --opencode)  INSTALL_OPENCODE=true ;;
+    *) printf "Unknown option: %s\nUsage: install.sh [--dry-run|--uninstall|--cursor|--opencode|--mcp]\n" "$arg"; exit 1 ;;
   esac
 done
 
@@ -99,6 +99,12 @@ if $UNINSTALL; then
     remove_symlink "$HOME/.claude/commands/$name"
   done
 
+  printf "\nRemoving ~/.claude/agents wrappers\n"
+  for agent in "$CLAUDE_WRAPPER/agents/"*.md; do
+    name="$(basename "$agent")"
+    remove_symlink "$HOME/.claude/agents/$name"
+  done
+
   printf "\nRemoving ~/.claude/MEMORY-BANK-GUIDE.md\n"
   remove_symlink "$HOME/.claude/MEMORY-BANK-GUIDE.md"
 
@@ -110,9 +116,23 @@ if $UNINSTALL; then
     done
   fi
 
-  if $INSTALL_CONTINUE; then
-    printf "\nNote: ~/.continue/config.ts was not auto-installed via symlink.\n"
-    log "Remove CortexHub entries from ~/.continue/config.ts manually."
+  if $INSTALL_OPENCODE; then
+    printf "\nRemoving ~/.config/opencode/opencode.json (if installed by CortexHub)\n"
+    OPENCODE_CONFIG="$HOME/.config/opencode/opencode.json"
+    if [ -L "$OPENCODE_CONFIG" ]; then
+      remove_symlink "$OPENCODE_CONFIG"
+    elif [ -f "$OPENCODE_CONFIG" ] && grep -q '"cortexhub"' "$OPENCODE_CONFIG" 2>/dev/null; then
+      if $DRY_RUN; then
+        log_dry "remove $OPENCODE_CONFIG (CortexHub-managed)"
+      else
+        rm "$OPENCODE_CONFIG"
+        log_ok "removed $OPENCODE_CONFIG"
+      fi
+    else
+      log "skip: $OPENCODE_CONFIG not managed by CortexHub"
+    fi
+    printf "\nRemoving ~/.local/bin/oc symlink\n"
+    remove_symlink "$HOME/.local/bin/oc"
   fi
 
   printf "\nDone.\n"
@@ -138,10 +158,17 @@ for cmd in "$CLAUDE_WRAPPER/commands/"*.md; do
   make_symlink "$cmd" "$HOME/.claude/commands/$name"
 done
 
-printf "\n4. MEMORY-BANK-GUIDE.md\n"
+printf "\n4. Claude agents wrappers\n"
+mkdir -p "$HOME/.claude/agents"
+for agent in "$CLAUDE_WRAPPER/agents/"*.md; do
+  name="$(basename "$agent")"
+  make_symlink "$agent" "$HOME/.claude/agents/$name"
+done
+
+printf "\n6. MEMORY-BANK-GUIDE.md\n"
 make_symlink "$CORE_DIR/docs/MEMORY-BANK-GUIDE.md" "$HOME/.claude/MEMORY-BANK-GUIDE.md"
 
-printf "\n5. CLAUDE.md snippet\n"
+printf "\n7. CLAUDE.md snippet\n"
 SNIPPET="$CLAUDE_WRAPPER/CLAUDE.md.snippet"
 CLAUDE_MD="$HOME/.claude/CLAUDE.md"
 MARKER="## Session Auto-Load (Memory-Bank)"
@@ -156,7 +183,7 @@ else
   log_ok "snippet injected into $CLAUDE_MD"
 fi
 
-printf "\n6. Claude hook (suggest-skill)\n"
+printf "\n8. Claude hook (suggest-skill)\n"
 HOOK_SRC="$CLAUDE_WRAPPER/settings.hook.json"
 SETTINGS_DEST="$HOME/.claude/settings.json"
 HOOK_MARKER="suggest-skill"
@@ -177,7 +204,7 @@ else
   log_ok "hook injected into $SETTINGS_DEST"
 fi
 
-printf "\n7. providers.json\n"
+printf "\n9. providers.json\n"
 PROVIDERS_EXAMPLE="$CORE_DIR/config/providers.json.example"
 PROVIDERS_DEST="$CORE_DIR/config/providers.json"
 if $DRY_RUN; then
@@ -207,32 +234,54 @@ if $INSTALL_CURSOR; then
   done
 fi
 
-if $INSTALL_CONTINUE; then
-  printf "\n9. Continue.dev config (~/.continue/config.ts)\n"
-  CONTINUE_DEST="$HOME/.continue/config.ts"
-  mkdir -p "$HOME/.continue"
+if $INSTALL_OPENCODE; then
+  printf "\n9. OpenCode + Ollama gateway\n"
+  OPENCODE_CONFIG_DIR="$HOME/.config/opencode"
+  OPENCODE_CONFIG_DEST="$OPENCODE_CONFIG_DIR/opencode.json"
+
   if $DRY_RUN; then
-    log_dry "copy $CONTINUE_WRAPPER/config.ts → $CONTINUE_DEST (if not exists)"
-  elif [ -f "$CONTINUE_DEST" ]; then
-    log_ok "$CONTINUE_DEST already exists — skipping (merge manually if needed)"
-    log "Reference: $CONTINUE_WRAPPER/config.ts"
+    log_dry "chmod +x opencode-start.sh"
+    log_dry "copy $OPENCODE_WRAPPER/opencode.json → $OPENCODE_CONFIG_DEST (if not exists)"
+    log_dry "symlink ~/.local/bin/oc → $OPENCODE_WRAPPER/opencode-start.sh"
   else
-    cp "$CONTINUE_WRAPPER/config.ts" "$CONTINUE_DEST"
-    log_ok "config.ts installed at $CONTINUE_DEST"
+    chmod +x "$OPENCODE_WRAPPER/opencode-start.sh"
+    log_ok "opencode-start.sh marked executable"
+    mkdir -p "$OPENCODE_CONFIG_DIR"
+    if [ -f "$OPENCODE_CONFIG_DEST" ]; then
+      log_ok "$OPENCODE_CONFIG_DEST already exists — skipping (merge manually if needed)"
+      log "Reference: $OPENCODE_WRAPPER/opencode.json"
+    else
+      cp "$OPENCODE_WRAPPER/opencode.json" "$OPENCODE_CONFIG_DEST"
+      log_ok "opencode.json installed at $OPENCODE_CONFIG_DEST"
+    fi
+
+    mkdir -p "$HOME/.local/bin"
+    make_symlink "$OPENCODE_WRAPPER/opencode-start.sh" "$HOME/.local/bin/oc"
+    printf "\n"
+    log "Usage: oc \"describe your task\"   (routes to the right Ollama model)"
+    log "       oc                          (default: code profile)"
+    log "See $OPENCODE_WRAPPER/MODELS.md for available profiles and models to pull"
+    if [ ! -f "$HOME/.ai-core/mcp/server.js" ]; then
+      printf "\n"
+      log_err "MCP server not installed — session tools won't be available in OpenCode"
+      log     "Run: ./install.sh --mcp"
+    fi
   fi
 fi
 
 if $INSTALL_MCP; then
   printf "\n10. MCP server\n"
   if $DRY_RUN; then
-    log_dry "npm install in $MCP_WRAPPER"
+    log_dry "pnpm install in $MCP_WRAPPER"
     log_dry "symlink ~/.ai-core/mcp → $MCP_WRAPPER"
   else
     if ! command -v node &>/dev/null; then
-      log_err "Node.js not found — install Node 18+ and re-run with --mcp"
+      log_err "Node.js not found — install Node 24+ and re-run with --mcp"
+    elif ! command -v pnpm &>/dev/null; then
+      log_err "pnpm not found — run 'corepack enable' then re-run with --mcp"
     else
-      (cd "$MCP_WRAPPER" && npm install --silent)
-      log_ok "npm install done"
+      (cd "$MCP_WRAPPER" && pnpm install --silent)
+      log_ok "pnpm install done"
       make_symlink "$MCP_WRAPPER" "$HOME/.ai-core/mcp"
       printf "\n"
       log "To connect to Claude Code, run:"

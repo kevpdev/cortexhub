@@ -18,5 +18,35 @@
     "base_url": "http://localhost:11434/v1",
     "model": "qwen2.5-coder:32b-instruct-q3_K_M",
     "api_key": ""
+  },
+  "profiles": {
+    "code": {
+      "description": "Code generation, review, debug, refactoring",
+      "model": "qwen2.5-coder:7b-instruct-q4_K_M",
+      "base_url": "http://localhost:11434/v1",
+      "skill": "code-reviewer",
+      "triggers": ["code", "review", "debug", "function", "class", "pr", "bug", "test", "refactor", "implement", "fix", "typescript", "javascript", "python", "java"]
+    },
+    "vault": {
+      "description": "Notes, triage, vault management, writing",
+      "model": "llama3.2:3b",
+      "base_url": "http://localhost:11434/v1",
+      "skill": null,
+      "triggers": ["note", "vault", "triage", "inbox", "capture", "résumé", "lire", "obsidian", "garden", "pkm", "écrire", "write", "summary", "document"]
+    },
+    "daily": {
+      "description": "Daily tasks, shell commands, system management",
+      "model": "gemma3:4b",
+      "base_url": "http://localhost:11434/v1",
+      "skill": null,
+      "triggers": ["install", "config", "script", "shell", "system", "file", "terminal", "commande", "setup", "configure", "cron", "service", "package"]
+    },
+    "ocr": {
+      "description": "Image reading, OCR, vision tasks",
+      "model": "minicpm-v:8b",
+      "base_url": "http://localhost:11434/v1",
+      "skill": null,
+      "triggers": ["image", "photo", "scan", "ocr", "extract", "screenshot", "vision", "picture", "voir", "extraire", "pdf"]
+    }
   }
 }

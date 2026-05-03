@@ -8,6 +8,26 @@
 
 ---
 
+## Memory-Bank and PKM (Vault, Notion…)
+
+Memory-bank and a PKM system are **complementary, not exclusive**.
+
+**Recommended setup when you have a vault:**
+- **Vault = primary source** — rich notes, decisions, permanent knowledge, linked context
+- **Memory-bank = local backup** — lightweight session state, always available (offline, sync issues, vault unavailable)
+
+The memory-bank ensures continuity even when the vault is unreachable. The vault remains the source of truth for long-term knowledge.
+
+| Situation | Recommended |
+|---|---|
+| Code project, no PKM | Memory-bank only |
+| Code project + vault | Both — vault primary, memory-bank backup |
+| Vault itself | Vault commands only (`/vault:capture`, `/vault:save`) |
+
+**Sync rule:** at session end, promote important captures from memory-bank to the vault. Don't let them diverge long-term.
+
+---
+
 ## Quick Start
 
 ```bash

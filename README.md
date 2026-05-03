@@ -14,7 +14,6 @@ core/                          ← source of truth, zero vendor dependencies
 wrappers/
   claude/    commands/*.md     ← Claude Code slash commands → call scripts
   cursor/    commands/*.md     ← Cursor slash commands     → call scripts
-  continue/  config.ts         ← Continue.dev slash cmds   → call scripts
   mcp/       server.js         ← MCP server (route_completion + browser agents)
 
 WORKFLOWS.md                   ← universal workflow contract (V1, 8 workflows)
@@ -22,6 +21,68 @@ install.sh                     ← sets up symlinks on a new machine
 ```
 
 **Core principle:** Scripts are the public API. Wrappers translate agent-native UX into script calls. MCP is a specialized consumer for cases where shell is unavailable.
+
+## Quick Setup (Fresh Install)
+
+### Prerequisites
+
+Before running the installer, ensure you have:
+
+| Tool | Check | Install (Linux) |
+|---|---|---|
+| Claude Code | `claude --version` | [Download](https://claude.ai/download) |
+| `jq` | `jq --version` | `sudo apt install jq` |
+| Git + SSH key | `ssh -T git@github.com` | [Setup guide](https://docs.github.com/en/authentication/connecting-to-github-with-ssh) |
+
+### Installation Steps
+
+```bash
+# Clone the repo
+git clone git@github.com:kevpdev/cortexhub.git ~/path/to/cortexhub
+cd ~/path/to/cortexhub
+
+# Preview changes (no modifications)
+./install.sh --dry-run
+
+# Run installer (creates symlinks + injects hooks)
+./install.sh
+```
+
+### What Gets Set Up Automatically
+
+The installer configures:
+
+- `~/.ai-core/` → symlink to `core/` (scripts, skills, templates)
+- `~/.claude/skills/` → symlinks to 5 core skills (code-reviewer, security-reviewer, etc.)
+- `~/.claude/commands/` → symlinks to slash commands (`/session-start`, `/plan`, `/epct`, etc.)
+- `~/.claude/CLAUDE.md` → Memory-Bank snippet merged into your global instructions
+- `~/.claude/settings.json` → Session hooks injected (SessionStart, UserPromptSubmit, PreToolUse)
+
+### Verify Installation
+
+Inside Claude Code, run:
+
+```
+/doctor
+```
+
+This validates hook format and configuration. All 3 hooks (SessionStart, UserPromptSubmit, PreToolUse) should show no errors.
+
+### Optional: Add Cursor or MCP
+
+```bash
+# Add Cursor integration
+./install.sh --cursor
+
+# Add MCP server (requires pnpm)
+corepack enable          # once per machine
+./install.sh --mcp       # runs pnpm install automatically
+
+# Add OpenCode/Ollama support
+./install.sh --opencode  # requires Ollama running locally
+```
+
+---
 
 ## Install
 
@@ -31,7 +92,6 @@ cd ~/path/to/cortexhub
 ./install.sh --dry-run    # preview
 ./install.sh              # core + Claude Code
 ./install.sh --cursor     # + Cursor commands
-./install.sh --continue   # + Continue.dev config
 ./install.sh --mcp        # + MCP server
 ```
 
@@ -41,8 +101,7 @@ cd ~/path/to/cortexhub
 |---|---|
 | *(none)* | Core + Claude Code (symlinks + CLAUDE.md snippet) |
 | `--cursor` | Symlinks 8 commands to `~/.cursor/commands/` |
-| `--continue` | Copies `config.ts` to `~/.continue/config.ts` |
-| `--mcp` | npm install + symlink `~/.ai-core/mcp` + setup instructions |
+| `--mcp` | pnpm install + symlink `~/.ai-core/mcp` + setup instructions |
 | `--dry-run` | Preview without changes |
 | `--uninstall` | Remove everything installed |
 
@@ -50,7 +109,7 @@ cd ~/path/to/cortexhub
 
 All Tier 1 agents expose the same workflows. See [`WORKFLOWS.md`](WORKFLOWS.md) for the full contract.
 
-| Workflow | Claude Code | Cursor | Continue.dev |
+| Workflow | Claude Code | Cursor | OpenCode |
 |---|---|---|---|
 | `/session-start [goal]` | ✅ | ✅ | ✅ |
 | `/session-end` | ✅ | ✅ | ✅ |

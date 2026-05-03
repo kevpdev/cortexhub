@@ -31,10 +31,20 @@ function runScript(scriptName, args, cwd) {
 }
 
 // Project path resolution order: explicit arg → env var → server cwd.
+// Restricts resolved path to the user's home directory to prevent scripts
+// from running in sensitive system directories (/etc, /sys, etc.).
 function resolveProject(projectPath) {
-  if (projectPath) return resolvePath(projectPath);
-  if (process.env.CORTEXHUB_PROJECT) return resolvePath(process.env.CORTEXHUB_PROJECT);
-  return process.cwd();
+  const resolved = projectPath
+    ? resolvePath(projectPath)
+    : process.env.CORTEXHUB_PROJECT
+      ? resolvePath(process.env.CORTEXHUB_PROJECT)
+      : process.cwd();
+
+  const home = homedir();
+  if (!resolved.startsWith(home) && !resolved.startsWith("/tmp")) {
+    throw new Error(`project_path must be under home directory (got: ${resolved})`);
+  }
+  return resolved;
 }
 
 function toContent(result) {
@@ -234,6 +244,11 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         // Validate name against known skills — prevents path traversal.
         if (!valid.has(args.name)) {
           return { content: [{ type: "text", text: `Unknown skill: ${args.name}. Available: ${[...valid].join(", ")}` }], isError: true };
+        }
+
+        const SAFE_SECTION = /^[a-zA-Z0-9_-]+\.md$/;
+        if (args.section && !SAFE_SECTION.test(args.section)) {
+          return { content: [{ type: "text", text: `Invalid section name: ${args.section}` }], isError: true };
         }
 
         const filePath = args.section

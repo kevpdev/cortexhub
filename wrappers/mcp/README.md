@@ -4,7 +4,8 @@ Expose le core CortexHub comme outils MCP — scripts de session, skills experts
 
 ## Prérequis
 
-- Node.js 18+
+- Node.js 24+ (LTS)
+- pnpm (`corepack enable` suffit — Node l'inclut nativement)
 - CortexHub installé (`~/.ai-core/` doit exister)
 
 ## Installation
@@ -14,7 +15,8 @@ Expose le core CortexHub comme outils MCP — scripts de session, skills experts
 ./install.sh --mcp
 
 # Manuel
-cd wrappers/mcp && npm install
+corepack enable        # une seule fois par machine
+cd wrappers/mcp && pnpm install
 ```
 
 ## Connexion à Claude Code
