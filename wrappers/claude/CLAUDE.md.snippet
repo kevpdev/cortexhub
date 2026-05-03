@@ -1,11 +1,10 @@
-## Session Auto-Load (Memory-Bank)
+## CortexHub — Memory-Bank & Workflows
 
-Au démarrage de chaque conversation, cherche `activeContext.md` dans l'ordre :
-`.ai-local/memory-bank/activeContext.md` d'abord, puis `.claude/memory-bank/activeContext.md` (legacy).
-Si l'un des deux existe, lis uniquement les sections "Current Focus" et "Next Steps" — silencieusement, sans le mentionner à l'utilisateur.
+Le contexte de session (Focus, Next Steps) est chargé automatiquement par le hook `SessionStart`.
+Les suggestions de skills sont injectées par le hook `UserPromptSubmit`.
 
 ### Workflow quotidien
-- **Début** : `/session-start` — charge le contexte, fixe l'objectif
+- **Début** : `/session-start` — confirme le focus ou en fixe un nouveau
 - **En cours** : `/capture "note"` — capture sans casser le flow
 - **Fin** : `/session-end` — sauvegarde progress et next steps
 
@@ -20,12 +19,9 @@ Si l'un des deux existe, lis uniquement les sections "Current Focus" et "Next St
 | `/plan` | Explore le codebase et produit un plan — s'arrête avant le code |
 | `/epct` | Implémente un plan validé — Code + Test uniquement |
 | `/create-pull-request` | Crée une PR avec titre et description auto |
+| `/skill <nom>` | Charge un skill expert dans le contexte |
 
 ### Skills disponibles
-
-Chargés à la demande via le mécanisme natif de Claude Code (`~/.claude/skills/`).
-Mentionne le skill dans ta demande pour l'activer, ou invoque-le explicitement.
-
 | Skill | Quand l'utiliser |
 |---|---|
 | `code-reviewer` | Review qualité, lisibilité, SOLID, perf |
