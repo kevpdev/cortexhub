@@ -60,6 +60,7 @@ All Tier 1 agents expose the same workflows. See [`WORKFLOWS.md`](WORKFLOWS.md) 
 | `/plan <description>` | ✅ | ✅ | ✅ |
 | `/epct <description>` | ✅ | ✅ | ✅ |
 | `/create-pull-request` | ✅ | ✅ | ✅ |
+| `/skill <name>` | ✅ (natif) | ✅ | ✅ |
 
 ## Skills (core)
 

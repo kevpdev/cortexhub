@@ -163,18 +163,39 @@ This document defines the universal workflow contract that every Tier 1 wrapper 
 
 ---
 
+---
+
+### 9. skill
+
+**Purpose** — Load a CortexHub skill into the agent's context for the rest of the conversation.
+
+**Args** — `name` ∈ {`code-reviewer`, `security-reviewer`, `backend-architect`, `frontend-expert`, `database-expert`} (optional — lists available skills if omitted).
+
+**Script** — None. Reads `~/.ai-core/skills/<name>/SKILL.md` directly.
+
+**Expected behavior**
+1. If no name provided: list available skills and prompt for one.
+2. Validate name against the known list.
+3. Read `~/.ai-core/skills/<name>/SKILL.md` and load content into context.
+4. Confirm: "Skill `<name>` loaded." Apply instructions for the rest of the conversation.
+
+**Note for Claude Code** — skills are loaded via the native skill mechanism (`~/.claude/skills/`). No explicit command needed; mention the skill in your request to activate it.
+
+---
+
 ## Implementation matrix
 
 | Workflow | Claude Code | Cursor | Continue.dev |
 |---|---|---|---|
-| session-start | ✅ `.claude/commands/` | ✅ `.cursor/commands/` | ✅ `config.ts` run() |
-| session-end | ✅ | ✅ | ✅ `config.ts` run() |
-| capture | ✅ | ✅ | ✅ `config.ts` run() |
-| memory-bank-init | ✅ | ✅ | ✅ `config.ts` run() |
-| memory-bank-setup | ✅ | ✅ | ✅ `config.ts` run() |
-| plan | ✅ | ✅ | ✅ `config.ts` prompt |
-| epct | ✅ | ✅ | ✅ `config.ts` prompt |
-| create-pull-request | ✅ | ✅ | ✅ `config.ts` prompt |
+| session-start | ✅ slash command `.md` | ✅ `.cursor/commands/` | ✅ `config.ts` run() |
+| session-end | ✅ | ✅ | ✅ run() |
+| capture | ✅ | ✅ | ✅ run() |
+| memory-bank-init | ✅ | ✅ | ✅ run() |
+| memory-bank-setup | ✅ | ✅ | ✅ run() |
+| plan | ✅ | ✅ | ✅ prompt |
+| epct | ✅ | ✅ | ✅ prompt |
+| create-pull-request | ✅ | ✅ | ✅ prompt |
+| skill | ✅ natif | ✅ `.cursor/commands/` | ✅ `config.ts` run() |
 
 ## Out of V1
 

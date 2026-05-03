@@ -7,6 +7,7 @@ import * as path from "node:path";
 const execAsync = promisify(exec);
 
 const SCRIPTS = path.join(os.homedir(), ".ai-core", "scripts");
+const SKILLS  = path.join(os.homedir(), ".ai-core", "skills");
 
 function script(name: string): string {
   return path.join(SCRIPTS, name);
@@ -196,6 +197,39 @@ const epct: SlashCommand = {
 Plan or feature to implement: {{{ input }}}`,
 };
 
+// ─── skill ──────────────────────────────────────────────────────────────────
+
+const VALID_SKILLS = ["code-reviewer", "security-reviewer", "backend-architect", "frontend-expert", "database-expert"];
+
+const skill: SlashCommand = {
+  name: "skill",
+  description: "Load a CortexHub skill — usage: /skill <name>",
+  run: async function* ({ input }) {
+    const name = sanitize(input).toLowerCase();
+
+    if (!name) {
+      yield "Available skills:\n";
+      yield VALID_SKILLS.map((s) => `  • ${s}`).join("\n");
+      yield "\n\nUsage: `/skill <name>`";
+      return;
+    }
+
+    if (!VALID_SKILLS.includes(name)) {
+      yield `Unknown skill: "${name}"\nAvailable: ${VALID_SKILLS.join(", ")}`;
+      return;
+    }
+
+    try {
+      const { readFile } = await import("node:fs/promises");
+      const content = await readFile(path.join(SKILLS, name, "SKILL.md"), "utf-8");
+      yield content;
+      yield `\n\n---\nSkill \`${name}\` loaded. Apply these instructions for the rest of this conversation.`;
+    } catch {
+      yield `Could not read skill "${name}". Check that ~/.ai-core/skills/${name}/SKILL.md exists.`;
+    }
+  },
+};
+
 // ─── create-pull-request ────────────────────────────────────────────────────
 
 const createPullRequest: SlashCommand = {
@@ -233,6 +267,7 @@ const config: ContinueConfig = {
     plan,
     epct,
     createPullRequest,
+    skill,
   ],
 };
 

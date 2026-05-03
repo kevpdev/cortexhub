@@ -17,3 +17,19 @@ Si l'un des deux existe, lis uniquement les sections "Current Focus" et "Next St
 | `/capture` | Note rapide sans interrompre le flow |
 | `/memory-bank-init` | Crée `.ai-local/memory-bank/` — neutre, sans agent |
 | `/memory-bank-setup` | Configure l'agent courant (Claude par défaut) pour lire le memory-bank |
+| `/plan` | Explore le codebase et produit un plan — s'arrête avant le code |
+| `/epct` | Implémente un plan validé — Code + Test uniquement |
+| `/create-pull-request` | Crée une PR avec titre et description auto |
+
+### Skills disponibles
+
+Chargés à la demande via le mécanisme natif de Claude Code (`~/.claude/skills/`).
+Mentionne le skill dans ta demande pour l'activer, ou invoque-le explicitement.
+
+| Skill | Quand l'utiliser |
+|---|---|
+| `code-reviewer` | Review qualité, lisibilité, SOLID, perf |
+| `security-reviewer` | Audit OWASP, auth, secrets, injections |
+| `backend-architect` | Décisions d'architecture backend, trade-offs API/stack |
+| `frontend-expert` | Architecture front, SSR/CSR, a11y, state management |
+| `database-expert` | Schéma, indexing, migrations, optimisation queries |
