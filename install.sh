@@ -239,6 +239,19 @@ else
   log "Edit ~/.ai-core/config/providers.json to configure your models"
 fi
 
+printf "\n8b. agent-routing.json\n"
+ROUTING_EXAMPLE="$CORE_DIR/config/agent-routing.json.example"
+ROUTING_DEST="$CORE_DIR/config/agent-routing.json"
+if $DRY_RUN; then
+  log_dry "copy agent-routing.json.example → agent-routing.json (if not exists)"
+elif [ -f "$ROUTING_DEST" ]; then
+  log_ok "agent-routing.json already exists — skipping"
+else
+  cp "$ROUTING_EXAMPLE" "$ROUTING_DEST"
+  log_ok "agent-routing.json created from example"
+  log "Edit ~/.ai-core/config/agent-routing.json to customize routing rules"
+fi
+
 if $INSTALL_CURSOR; then
   printf "\n8. Cursor commands (~/.cursor/commands/)\n"
   mkdir -p "$HOME/.cursor/commands"

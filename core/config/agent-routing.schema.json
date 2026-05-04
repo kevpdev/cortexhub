@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CortexHub agent routing rules",
+  "description": "Règles déterministes de routage des sous-agents et skills. Évaluées dans l'ordre, première règle qui matche gagne.",
+  "type": "object",
+  "required": ["rules"],
+  "properties": {
+    "_comment": { "type": "string" },
+    "$schema": { "type": "string" },
+    "rules": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/rule" }
+    }
+  },
+  "definitions": {
+    "rule": {
+      "type": "object",
+      "required": ["id", "match", "target", "reason"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identifiant unique de la règle (kebab-case)."
+        },
+        "match": {
+          "type": "object",
+          "description": "Critères de match. regex obligatoire en V1. files_changed et tools réservés (non évalués).",
+          "properties": {
+            "regex": { "type": "string", "description": "Pattern POSIX étendu, matché contre le prompt en lowercase." },
+            "files_changed": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Réservé V2 — globs sur fichiers modifiés."
+            },
+            "tools": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Réservé V2 — outils utilisés (Edit, Write, etc.)."
+            }
+          },
+          "anyOf": [
+            { "required": ["regex"] },
+            { "required": ["files_changed"] },
+            { "required": ["tools"] }
+          ]
+        },
+        "target": {
+          "type": "object",
+          "required": ["type", "name"],
+          "properties": {
+            "type": { "enum": ["agent", "skill"] },
+            "name": { "type": "string" }
+          }
+        },
+        "force": {
+          "type": "boolean",
+          "default": false,
+          "description": "true → message impératif (Claude DOIT déléguer). false → suggestion."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Phrase affichée à Claude et à l'utilisateur, explique pourquoi déléguer."
+        }
+      }
+    }
+  }
+}

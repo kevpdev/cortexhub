@@ -82,6 +82,26 @@ else
   fail "Memory-Bank snippet missing — re-run install.sh"
 fi
 
+# ── Agent routing ─────────────────────────────────────────────────────────────
+
+printf "\nAgent routing\n"
+ROUTING="$CORE/config/agent-routing.json"
+if [ ! -f "$ROUTING" ]; then
+  fail "agent-routing.json missing — re-run install.sh"
+elif ! command -v jq >/dev/null 2>&1; then
+  fail "jq not found — required to validate agent-routing.json"
+elif ! jq empty "$ROUTING" 2>/dev/null; then
+  fail "agent-routing.json invalid JSON"
+else
+  pass "agent-routing.json valid JSON"
+  rule_count=$(jq '.rules | length' "$ROUTING")
+  if [ "$rule_count" -gt 0 ]; then
+    pass "$rule_count routing rule(s) loaded"
+  else
+    fail "agent-routing.json has zero rules"
+  fi
+fi
+
 # ── Tools ─────────────────────────────────────────────────────────────────────
 
 printf "\nSystem tools\n"

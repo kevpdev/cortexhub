@@ -2,4 +2,5 @@
 *.swp
 wrappers/mcp/node_modules/
 core/config/providers.json
+core/config/agent-routing.json
 core/logs/

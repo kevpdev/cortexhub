@@ -105,6 +105,21 @@ See [`WORKFLOWS.md`](WORKFLOWS.md) for the full contract.
 | `frontend-expert` | SSR/CSR, a11y, state management |
 | `database-expert` | Schema, indexing, migrations |
 
+Skills are auto-suggested via the `UserPromptSubmit` hook — see [Agent routing](#agent-routing) for the deterministic rule engine.
+
+---
+
+## Agent routing
+
+CortexHub ships with a deterministic routing engine that triggers agents/skills based on user prompts, replacing Claude's probabilistic delegation choice.
+
+- Rules live in `~/.ai-core/config/agent-routing.json` (created from `.example` at install)
+- Hook `UserPromptSubmit` evaluates rules in order; first match wins
+- `force: true` → impératif message; `force: false` → suggestion
+- Multi-provider: runs **before** Claude, works with Claude CLI + Ollama, Cursor, OpenCode
+
+Full doc: [`core/docs/AGENT-ROUTING.md`](core/docs/AGENT-ROUTING.md).
+
 ---
 
 ## Compatibility
