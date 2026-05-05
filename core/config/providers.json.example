@@ -1,4 +1,5 @@
 {
+  "_schema_version": 1,
   "tier1": {
     "description": "Fast — vault, notes, simple tasks (local 7B)",
     "base_url": "http://localhost:11434/v1",
