@@ -54,6 +54,13 @@ if $EXPLICIT_CLAUDE; then
   INSTALL_CLAUDE=true
 fi
 
+if ($INSTALL_CLAUDE || $CHECK_ONLY) && ! $UNINSTALL; then
+  if ! command -v jq &>/dev/null; then
+    printf "  ✗ jq is required for Claude install and --check (install: sudo apt install jq)\n" >&2
+    exit 1
+  fi
+fi
+
 # ── Logging ────────────────────────────────────────────────────────────────────
 
 log()      { printf "  %s\n" "$*"; }
@@ -423,15 +430,17 @@ fi
 
 # ── Pre-flight ─────────────────────────────────────────────────────────────────
 
-mkdir -p "$HOME/.claude"
-$INSTALL_CURSOR && mkdir -p "$HOME/.cursor/commands" "$HOME/.cursor/rules"
-$INSTALL_CLAUDE && mkdir -p "$HOME/.claude/skills" "$HOME/.claude/commands" "$HOME/.claude/agents"
+if ! $CHECK_ONLY && ! $DRY_RUN; then
+  mkdir -p "$HOME/.claude"
+  $INSTALL_CURSOR && mkdir -p "$HOME/.cursor/commands" "$HOME/.cursor/rules"
+  $INSTALL_CLAUDE && mkdir -p "$HOME/.claude/skills" "$HOME/.claude/commands" "$HOME/.claude/agents"
+fi
 
 run_preflight
 
 if $CHECK_ONLY; then
   print_report
-  if [ ${#CONFLICTS[@]} -gt 0 ]; then exit 1; fi
+  if [ ${#CONFLICTS[@]} -gt 0 ] || [ ${#DRIFTS[@]} -gt 0 ]; then exit 1; fi
   exit 0
 fi
 

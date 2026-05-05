@@ -152,7 +152,7 @@ git pull
 
 All symlinked content is now up-to-date.
 
-**2. Check for config updates [planned]**
+**2. Check for config updates**
 
 ```bash
 ./install.sh --check
@@ -169,7 +169,7 @@ This reports (but does NOT apply):
 | Config schema version mismatch | `providers.json._schema_version` differs | Migrate using script in `migrations/` if provided |
 | Breaking changes | See migration guide | Read `MIGRATIONS.md` for exact steps |
 
-> `--check` feature is [planned] for V1.1. For now, review changes manually: `git log --oneline origin/main..main` or `git diff` before pulling.
+Exits with status 1 if conflicts or drifts are detected — safe to use in CI or pre-upgrade scripts.
 
 **3. Add new safe wrappers (optional)**
 

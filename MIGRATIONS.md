@@ -25,6 +25,19 @@ If complex, provide a bash script in `migrations/v<VERSION>-*.sh` that users can
 
 ## Entries
 
+### v1.1 — 2026-05-05
+
+**Status**: Non-breaking, additive.
+
+**Changes**:
+- `./install.sh --check` is now fully operational: read-only pre-flight report with exit code 1 on conflicts or drifts.
+- `jq` is now a hard requirement for `--check` and Claude installs (was silently skipped before).
+- `--check` no longer creates directories (was creating `~/.claude` and subdirs even in read-only mode).
+
+**Migration**: No action required. Existing installs are unaffected.
+
+---
+
 ### v1.0 — 2026-01-15
 
 **Status**: Initial release. No breaking changes from prior versions.

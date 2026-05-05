@@ -4,34 +4,19 @@ This file documents discrepancies between the **intended install/upgrade behavio
 
 These gaps are **not bugs** — they are **planned features** that the documentation reserves for future implementation, marked with `[planned]`.
 
-## Current Status (v1.0)
+## Current Status (v1.1)
 
-### `--check` mode [planned for v1.1]
+### `--check` mode ✅ implemented in v1.1
 
 **What was documented**:
 - `./install.sh --check` produces a detailed diff report of what changed in the repo
 - Reports: new wrappers, orphaned symlinks, schema version mismatches, breaking changes
 
-**What actually exists**:
-- `./install.sh --dry-run` exists and previews symlinks to be created
-- No systematic analysis of config schema versions, hook definitions, or breaking changes
-- Users must manually compare repo versions with their local configs
-
-**Impact on users**:
-- Users must run `git diff` themselves to detect breaking changes
-- Troubleshooting section in README.md still provides manual checks (grep, jq, diff)
-- This is acceptable for v1.0; v1.1 should automate these checks
-
-**Action items for v1.1**:
-1. Implement `install.sh --check` as a new mode
-2. Add logic to detect:
-   - New files that would be symlinked (safe)
-   - Orphaned symlinks (deleted files in repo)
-   - `_schema_version` mismatches in config files
-   - Marker version mismatches in CLAUDE.md snippet
-   - Hook definition changes in settings.json
-3. Output a human-readable diff report
-4. Exit with status 1 if breaking changes detected (prevent silent failures)
+**What exists (v1.1)**:
+- `--check` runs all preflight scans (orphans, drifts, conflicts, additions) and prints a report
+- Exits 1 on conflicts OR drifts (breaking), 0 if clean
+- Read-only: does not create directories or modify any files
+- Requires `jq` (hard-blocked with clear error if missing)
 
 ---
 
@@ -82,12 +67,11 @@ These gaps are **not bugs** — they are **planned features** that the documenta
 
 ---
 
-## Next Steps (v1.1+)
+## Next Steps (v1.2+)
 
-1. **Implement `--check` mode** — priority high (helps users catch issues before upgrade)
-2. **Add schema version validation to `/doctor`** — if not already present
-3. **Create `migrations/` directory** — on first breaking change
-4. **Test upgrade workflow** — use a Docker container with v1.0, pull v1.1, verify `--check` output
+1. **Add schema version validation to `/doctor`** — if not already present
+2. **Create `migrations/` directory** — on first breaking change
+3. **Test upgrade workflow** — use a Docker container with v1.0, pull v1.1, verify `--check` output
 
 ---
 
