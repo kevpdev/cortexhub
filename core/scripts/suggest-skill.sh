@@ -76,6 +76,10 @@ format_message() {
 # ── Path 1: rules-based routing ───────────────────────────────────────────────
 
 if [ -f "$ROUTING" ] && command -v jq >/dev/null 2>&1; then
+  if ! jq empty "$ROUTING" 2>/dev/null; then
+    emit "⚠️ agent-routing.json invalide (JSON malformé) — routing désactivé. Corrigez le fichier : $ROUTING"
+    exit 0
+  fi
   # Iterate rules; on first match, emit and exit.
   count=$(jq '.rules | length' "$ROUTING" 2>/dev/null || printf "0")
   i=0
@@ -97,6 +101,8 @@ if [ -f "$ROUTING" ] && command -v jq >/dev/null 2>&1; then
 fi
 
 # ── Path 2: legacy fallback (no jq, or routing file missing) ──────────────────
+
+emit "⚠️ agent-routing.json absent ou jq manquant — routing en mode fallback legacy (suggestions uniquement, pas de délégation forcée)."
 
 if printf "%s" "$lower" | grep -qE "review|qualit|lisibilit|solid|mainten|refactor|propre|clean code"; then
   skill="code-reviewer"

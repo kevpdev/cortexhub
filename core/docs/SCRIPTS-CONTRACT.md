@@ -10,6 +10,33 @@ This document is the authoritative reference for `~/.ai-core/scripts/`. Every wr
 - **Non-interactive mode** = explicit args, for use by agent wrappers.
 - Paths use `$HOME` — never hardcoded absolutes.
 
+### No silent degradation
+
+Any fallback, skip, or degraded mode **must emit a visible warning** — never exit 0 silently when behavior is reduced.
+
+| Situation | Required behavior |
+|---|---|
+| Config file absent | Warn user + explain consequence (e.g. "routing en mode fallback") |
+| Config file invalid (bad JSON, schema error) | Warn user + name the file to fix |
+| Optional dependency missing | Warn user + explain what feature is skipped |
+| Fallback path taken | Always signal it — user must know they're not on the normal path |
+
+A silent `exit 0` is only acceptable when the script genuinely has **nothing to do** (no prompt, no match, no-op by design).
+
+**Anti-pattern to avoid**:
+```bash
+count=$(jq '.rules | length' "$file" 2>/dev/null || printf "0")
+# if jq fails silently, count=0 → loop skipped → no routing, no warning ← WRONG
+```
+
+**Correct pattern**:
+```bash
+if ! jq empty "$file" 2>/dev/null; then
+  emit "⚠️ $file invalide — feature désactivée. Corrigez le fichier."
+  exit 0
+fi
+count=$(jq '.rules | length' "$file")
+
 ---
 
 ## capture.sh

@@ -22,6 +22,7 @@ CortexHub is built on a core principle: **scripts are the API**. Changes must ma
 - [ ] Documented at top: usage, args, exit codes, examples
 - [ ] Tested: `bash core/scripts/<name>.sh --help` works
 - [ ] Add to [`WORKFLOWS.md`](WORKFLOWS.md) if it's a user-facing workflow
+- [ ] **No silent degradation** — every fallback, skip, or degraded mode emits a visible warning (see [Scripts Contract](core/docs/SCRIPTS-CONTRACT.md#no-silent-degradation))
 
 **Example header**:
 ```bash
@@ -184,6 +185,7 @@ mkdir -p ~/.ai-core ~/.claude ~/.cursor ~/.config/opencode
 Before submitting a PR, verify:
 
 - [ ] **Code quality**: Bash linting (`shellcheck`), no hardcoded paths (use `~` and env vars)
+- [ ] **No silent degradation**: fallbacks et skips émettent un warning visible (voir [Scripts Contract](core/docs/SCRIPTS-CONTRACT.md#no-silent-degradation))
 - [ ] **Backwards compatible** or includes `MIGRATIONS.md` entry
 - [ ] **Scripts documented** (usage, args, exit codes at top)
 - [ ] **Configs versioned** if structure changed (`_schema_version` bumped)
