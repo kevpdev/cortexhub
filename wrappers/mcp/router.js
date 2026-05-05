@@ -1,3 +1,7 @@
+/**
+ * Routes LLM completions to the appropriate provider tier (1/2/3) based on task type, with fallback chain.
+ */
+
 import OpenAI from "openai";
 import { readFile, appendFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -27,6 +31,11 @@ export const TASK_TYPES = Object.keys(ROUTING);
 
 let _configCache = null;
 
+/**
+ * Loads and caches providers.json. Resolves `$ENV_VAR` references in api_key at runtime.
+ * @returns {Promise<object>} Config indexed by tier (tier1/tier2/tier3).
+ * @throws {Error} If file is missing or invalid JSON.
+ */
 async function loadConfig() {
   if (_configCache) return _configCache;
   let raw;
@@ -69,6 +78,11 @@ async function logUsage({ tier, model, base_url, usage, fallback_from }) {
   } catch { /* silent */ }
 }
 
+/**
+ * Maps task_type to the target tier. Defaults to tier2 if unmapped.
+ * @param {string} task_type - Task category (vault, code, reasoning, etc.).
+ * @returns {string} Tier name (tier1, tier2, or tier3).
+ */
 export function resolveTier(task_type) {
   return ROUTING[task_type] ?? "tier2";
 }

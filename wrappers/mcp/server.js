@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+/**
+ * MCP server for CortexHub. Exposes 8 tools: session_start/end, capture, memory_bank ops, skill access, route_completion.
+ */
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
@@ -11,7 +14,13 @@ import { routeCompletion, TASK_TYPES } from "./router.js";
 const SCRIPTS_DIR = join(homedir(), ".ai-core", "scripts");
 const SKILLS_DIR  = join(homedir(), ".ai-core", "skills");
 
-// Spawn a core script with args array — no shell interpolation, no injection risk.
+/**
+ * Spawns a core script with args array. No shell interpolation; safe from injection.
+ * @param {string} scriptName - Script filename in ~/.ai-core/scripts/.
+ * @param {string[]} args - Arguments passed to the script.
+ * @param {string} cwd - Working directory for the script.
+ * @returns {Promise<{stdout: string, stderr: string, code: number}>} Process output and exit code.
+ */
 function runScript(scriptName, args, cwd) {
   return new Promise((res) => {
     const scriptPath = join(SCRIPTS_DIR, scriptName);
@@ -30,9 +39,12 @@ function runScript(scriptName, args, cwd) {
   });
 }
 
-// Project path resolution order: explicit arg → env var → server cwd.
-// Restricts resolved path to the user's home directory to prevent scripts
-// from running in sensitive system directories (/etc, /sys, etc.).
+/**
+ * Resolves project directory from argument, env var, or cwd. Restricts to home dir for security.
+ * @param {string} [projectPath] - Explicit project path. Falls back to CORTEXHUB_PROJECT env var or cwd.
+ * @returns {string} Absolute path to project root.
+ * @throws {Error} If resolved path is outside home directory.
+ */
 function resolveProject(projectPath) {
   const resolved = projectPath
     ? resolvePath(projectPath)
@@ -47,6 +59,11 @@ function resolveProject(projectPath) {
   return resolved;
 }
 
+/**
+ * Converts a script result to MCP content response. Detects error from exit code.
+ * @param {{stdout: string, stderr: string, code: number}} result - Process output.
+ * @returns {{content: Array, isError: boolean}} MCP-formatted response.
+ */
 function toContent(result) {
   const isError = result.code !== 0;
   const text = result.stdout || result.stderr || `Exit code: ${result.code}`;
