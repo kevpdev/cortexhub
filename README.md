@@ -330,6 +330,9 @@ See [`WORKFLOWS.md`](WORKFLOWS.md) for the full contract.
 | `backend-architect` | API design, architecture patterns |
 | `frontend-expert` | SSR/CSR, a11y, state management |
 | `database-expert` | Schema, indexing, migrations |
+| `agentic-architect` | Multi-agent design, orchestration, hook vs LLM routing |
+| `brain-expert` | Human cognition, cognitive load, learning, UX design |
+| `devops-expert` | CI/CD, Docker, Kubernetes, IaC, observability |
 
 Skills are auto-suggested via the `UserPromptSubmit` hook — see [Agent routing](#agent-routing) for the deterministic rule engine.
 
