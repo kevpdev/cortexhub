@@ -110,8 +110,12 @@ if $UNINSTALL; then
 
   if $INSTALL_CLAUDE; then
     printf "\nRemoving ~/.claude/skills wrappers\n"
-    for skill in backend-architect code-reviewer database-expert frontend-expert security-reviewer; do
-      remove_symlink "$HOME/.claude/skills/$skill"
+    for link in "$HOME/.claude/skills/"*; do
+      [ -L "$link" ] || continue
+      target="$(readlink "$link")"
+      case "$target" in
+        "$CORE_DIR"/skills/*) remove_symlink "$link" ;;
+      esac
     done
 
     printf "\nRemoving ~/.claude/commands wrappers\n"
@@ -174,8 +178,10 @@ make_symlink "$CORE_DIR" "$HOME/.ai-core"
 if $INSTALL_CLAUDE; then
   printf "\n2. Claude skills wrappers\n"
   mkdir -p "$HOME/.claude/skills"
-  for skill in backend-architect code-reviewer database-expert frontend-expert security-reviewer; do
-    make_symlink "$CORE_DIR/skills/$skill" "$HOME/.claude/skills/$skill"
+  for skill_dir in "$CORE_DIR/skills/"*/; do
+    [ -d "$skill_dir" ] || continue
+    skill_name="$(basename "$skill_dir")"
+    make_symlink "$skill_dir" "$HOME/.claude/skills/$skill_name"
   done
 
   printf "\n3. Claude commands wrappers\n"
