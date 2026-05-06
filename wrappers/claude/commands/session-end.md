@@ -21,4 +21,7 @@ Claude wrapper for `~/.ai-core/scripts/session-end.sh`.
 ```
 
 3. Display the script output.
-4. Ask if the user wants to commit the changes.
+4. If `.claude/vault-sync.json` exists in the current project:
+   - Mettre à jour `docs/tech-state.md` en lisant l'état actuel du projet (structure, stack, statut des features) si des changements notables ont eu lieu cette session
+   - Lancer `/vault-sync-from-dev` pour pousser vers le vault
+5. Ask if the user wants to commit the changes.

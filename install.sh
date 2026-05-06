@@ -65,9 +65,16 @@ make_symlink() {
     return
   fi
 
-  if [ -e "$link" ] && [ ! -L "$link" ]; then
-    log_err "CONFLICT: $link exists and is not a symlink — skipping (move it manually)"
-    return 1
+  if [ -d "$link" ] && [ ! -L "$link" ]; then
+    if [ -z "$(ls -A "$link" 2>/dev/null)" ]; then
+      rmdir "$link"
+    else
+      printf "\n  ✗ CONFLICT: %s exists as a non-empty directory — move it manually and re-run\n\n" "$link" >&2
+      exit 1
+    fi
+  elif [ -e "$link" ] && [ ! -L "$link" ]; then
+    printf "\n  ✗ CONFLICT: %s exists and is not a symlink — move it manually and re-run\n\n" "$link" >&2
+    exit 1
   fi
 
   if [ -L "$link" ] && [ "$(readlink "$link")" = "$target" ]; then
