@@ -26,7 +26,7 @@
     },
     {
       "id": "frontend-expertise",
-      "match": { "regex": "frontend|react|vue|angular|next|nuxt|ssr|csr|a11y|accessib|composant|component|web vital|render|hydration" },
+      "match": { "regex": "frontend|react|vue\\.js|vuejs|angular|next\\.js|nextjs|nuxt|ssr|csr|a11y|accessib|composant|component|web vital|render|hydration" },
       "target": { "type": "skill", "name": "frontend-expert" },
       "force": false,
       "reason": "Tâche frontend — skill frontend-expert recommandé pour SSR/CSR, perf, a11y."
@@ -47,7 +47,7 @@
     },
     {
       "id": "backend-architecture",
-      "match": { "regex": "architect|api|rest|graphql|grpc|microserv|monolith|backend|design pattern|ddd|cqrs|hexagonal" },
+      "match": { "regex": "architect|api|restful|rest\\s*api|api\\s*rest|graphql|grpc|microserv|monolith|backend|design pattern|ddd|cqrs|hexagonal" },
       "target": { "type": "skill", "name": "backend-architect" },
       "force": false,
       "reason": "Décision d'architecture backend — skill backend-architect recommandé pour les trade-offs."
