@@ -40,7 +40,7 @@ Ton job : signaler ce qui bloque le merge et ce qui peut être amélioré, avec 
 4. **Charge la référence stack-spécifique** :
    - Java → `references/checklist-java.md`
    - TypeScript/Node → `references/checklist-typescript.md`
-   - Cross-stack uniquement → reste sur `skill.md`
+   - Cross-stack uniquement → reste sur `SKILL.md`
 
 ## Pendant la review
 
