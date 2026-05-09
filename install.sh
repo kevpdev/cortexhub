@@ -13,6 +13,7 @@
 #   ./install.sh --check             — pre-flight report only, no changes
 #   ./install.sh --dry-run           — show what would be done, no changes
 #   ./install.sh --force             — bypass conflict-abort (still no overwrite)
+#   ./install.sh --update [flags]    — sync after git pull: new symlinks + auto-fix orphans/drift
 #   ./install.sh --uninstall [flags] — remove what was installed
 set -euo pipefail
 
@@ -26,6 +27,7 @@ OPENCODE_WRAPPER="$REPO_DIR/wrappers/opencode"
 DRY_RUN=false
 CHECK_ONLY=false
 FORCE=false
+UPDATE=false
 UNINSTALL=false
 EXPLICIT_CLAUDE=false
 INSTALL_CLAUDE=false
@@ -38,14 +40,18 @@ for arg in "$@"; do
     --dry-run)   DRY_RUN=true ;;
     --check)     CHECK_ONLY=true ;;
     --force)     FORCE=true ;;
+    --update)    UPDATE=true ;;
     --uninstall) UNINSTALL=true ;;
     --claude)    EXPLICIT_CLAUDE=true ;;
     --mcp)       INSTALL_MCP=true ;;
     --cursor)    INSTALL_CURSOR=true ;;
     --opencode)  INSTALL_OPENCODE=true ;;
-    *) printf "Unknown option: %s\nUsage: install.sh [--check|--dry-run|--force|--uninstall|--claude|--cursor|--opencode|--mcp]\n" "$arg"; exit 1 ;;
+    *) printf "Unknown option: %s\nUsage: install.sh [--check|--dry-run|--force|--update|--uninstall|--claude|--cursor|--opencode|--mcp]\n" "$arg"; exit 1 ;;
   esac
 done
+
+# --update implies --force: conflicts are skipped (already resolved at first install)
+if $UPDATE; then FORCE=true; fi
 
 if ! $INSTALL_CURSOR && ! $INSTALL_OPENCODE; then
   INSTALL_CLAUDE=true
@@ -203,6 +209,97 @@ check_hook_version() {
   fi
 }
 
+# ── Update helpers ─────────────────────────────────────────────────────────────
+
+# Replace the versioned snippet block between cortexhub:snippet markers.
+# Uses Python for portability (no sed -i BSD/GNU mismatch).
+auto_fix_snippet() {
+  local claude_md="$1"
+  local snippet="$2"
+
+  [ -f "$claude_md" ] || { log_warn "CLAUDE.md not found — skipping snippet update"; return 0; }
+  [ -f "$snippet" ]   || { log_warn "snippet source not found — skipping"; return 0; }
+
+  local template_v user_v
+  template_v=$(grep -oE 'cortexhub:snippet:start v=[0-9]+' "$snippet"   | head -1 | grep -oE '[0-9]+$' || echo "")
+  user_v=$(    grep -oE 'cortexhub:snippet:start v=[0-9]+' "$claude_md" | head -1 | grep -oE '[0-9]+$' || echo "")
+
+  if [ -z "$template_v" ]; then
+    log_warn "no version marker in snippet — update skipped"
+    return 0
+  fi
+
+  if [ -z "$user_v" ]; then
+    log_warn "snippet not found in $claude_md — run install first"
+    return 0
+  fi
+
+  if [ "$user_v" = "$template_v" ]; then
+    log_ok "snippet up to date (v$user_v)"
+    return 0
+  fi
+
+  if $DRY_RUN; then
+    log_dry "update snippet v$user_v → v$template_v in $claude_md"
+    return 0
+  fi
+
+  python3 - "$claude_md" "$snippet" <<'PYEOF'
+import re, sys, os, tempfile
+claude_md, snippet_file = sys.argv[1], sys.argv[2]
+content   = open(claude_md).read()
+new_block = open(snippet_file).read().strip()
+result = re.sub(
+    r'<!-- cortexhub:snippet:start v=\d+ -->.*?<!-- cortexhub:snippet:end -->',
+    lambda _: new_block,
+    content,
+    flags=re.DOTALL
+)
+with tempfile.NamedTemporaryFile('w', dir=os.path.dirname(claude_md), delete=False) as tmp:
+    tmp.write(result)
+    tmp_path = tmp.name
+os.replace(tmp_path, claude_md)
+PYEOF
+  log_ok "snippet updated v$user_v → v$template_v"
+}
+
+# Re-merge hooks into settings.json if version is behind template.
+auto_fix_hooks() {
+  local settings="$1"
+  local hook_src="$2"
+
+  [ -f "$hook_src" ] || { log_warn "hook source not found — skipping"; return 0; }
+  command -v jq >/dev/null || { log_warn "jq not found — skipping hook update"; return 0; }
+
+  local template_v user_v
+  template_v=$(jq -r '._cortexhub_hooks_version // 0' "$hook_src"  2>/dev/null || echo "0")
+  user_v=0
+  [ -f "$settings" ] && user_v=$(jq -r '._cortexhub_hooks_version // 0' "$settings" 2>/dev/null || echo "0")
+
+  if [ "$template_v" = "0" ]; then
+    log_warn "no version marker in hook template — update skipped"
+    return 0
+  fi
+
+  if [ "$user_v" = "$template_v" ]; then
+    log_ok "hooks up to date (v$user_v)"
+    return 0
+  fi
+
+  if $DRY_RUN; then
+    log_dry "merge hooks v$user_v → v$template_v into $settings"
+    return 0
+  fi
+
+  if [ -f "$settings" ]; then
+    local tmp; tmp=$(mktemp)
+    jq -s '.[0] * .[1]' "$settings" "$hook_src" > "$tmp" && mv "$tmp" "$settings"
+  else
+    cp "$hook_src" "$settings"
+  fi
+  log_ok "hooks updated v$user_v → v$template_v"
+}
+
 # ── Orphan scan ────────────────────────────────────────────────────────────────
 # Walk known wrapper destinations and report symlinks that point inside $REPO_DIR
 # but whose target no longer exists.
@@ -258,8 +355,9 @@ preflight_claude() {
   local target="$CORE_DIR" link="$HOME/.ai-core"
   make_symlink "$target" "$link" >/dev/null
 
-  for skill in backend-architect code-reviewer database-expert frontend-expert security-reviewer; do
-    make_symlink "$CORE_DIR/skills/$skill" "$HOME/.claude/skills/$skill" >/dev/null
+  for skill in "$CORE_DIR/skills/"*/; do
+    [ -d "$skill" ] || continue
+    make_symlink "$skill" "$HOME/.claude/skills/$(basename "$skill")" >/dev/null
   done
 
   for cmd in "$CLAUDE_WRAPPER/commands/"*.md; do
@@ -383,8 +481,9 @@ if $UNINSTALL; then
 
   if $INSTALL_CLAUDE; then
     printf "\nRemoving ~/.claude/skills wrappers\n"
-    for skill in backend-architect code-reviewer database-expert frontend-expert security-reviewer; do
-      remove_symlink "$HOME/.claude/skills/$skill"
+    for skill in "$CORE_DIR/skills/"*/; do
+      [ -d "$skill" ] || continue
+      remove_symlink "$HOME/.claude/skills/$(basename "$skill")"
     done
 
     printf "\nRemoving ~/.claude/commands wrappers\n"
@@ -452,8 +551,10 @@ if [ ${#CONFLICTS[@]} -gt 0 ] && ! $FORCE; then
 fi
 
 if [ ${#ORPHANS[@]} -gt 0 ] || [ ${#DRIFTS[@]} -gt 0 ]; then
-  print_report
-  printf "Continuing install (orphans and drifts are warnings only).\n\n"
+  if ! $UPDATE; then
+    print_report
+    printf "Continuing install (orphans and drifts are warnings only).\n\n"
+  fi
 fi
 
 # ── Install ────────────────────────────────────────────────────────────────────
@@ -463,15 +564,18 @@ ORPHANS=()
 DRIFTS=()
 ADDITIONS=()
 
-printf "\n=== CortexHub install%s ===\n\n" "$(if $DRY_RUN; then printf " (dry-run)"; fi)"
+printf "\n=== CortexHub install%s%s ===\n\n" \
+  "$(if $UPDATE;  then printf " (update)";   fi)" \
+  "$(if $DRY_RUN; then printf " (dry-run)"; fi)"
 
 printf "1. Core — ~/.ai-core → %s/core\n" "$REPO_DIR"
 make_symlink "$CORE_DIR" "$HOME/.ai-core"
 
 if $INSTALL_CLAUDE; then
   printf "\n2. Claude skills wrappers\n"
-  for skill in backend-architect code-reviewer database-expert frontend-expert security-reviewer; do
-    make_symlink "$CORE_DIR/skills/$skill" "$HOME/.claude/skills/$skill"
+  for skill in "$CORE_DIR/skills/"*/; do
+    [ -d "$skill" ] || continue
+    make_symlink "$skill" "$HOME/.claude/skills/$(basename "$skill")"
   done
 
   printf "\n3. Claude commands wrappers\n"
@@ -613,4 +717,39 @@ if $INSTALL_MCP; then
   fi
 fi
 
-printf "\nDone%s.\n" "$(if $DRY_RUN; then printf " (dry-run — no changes made)"; fi)"
+if ! $UPDATE; then
+  printf "\nDone%s.\n" "$(if $DRY_RUN; then printf " (dry-run — no changes made)"; fi)"
+fi
+
+# ── Update: auto-fix orphans and drift ────────────────────────────────────────
+# Runs only with --update. The install pass above already added new symlinks;
+# this block removes orphans and applies snippet/hook drift automatically.
+
+if $UPDATE; then
+  printf "\n=== CortexHub update — syncing orphans and drift ===\n\n"
+
+  # Re-scan orphans (arrays were reset before the install pass)
+  ORPHANS=()
+  scan_all_orphans
+  if [ ${#ORPHANS[@]} -gt 0 ]; then
+    printf "Auto-removing %d orphan symlink(s):\n" "${#ORPHANS[@]}"
+    for o in "${ORPHANS[@]}"; do
+      IFS='|' read -r path _ _ <<<"$o"
+      remove_symlink "$path"
+    done
+    printf "\n"
+  else
+    log_ok "No orphan symlinks"
+    printf "\n"
+  fi
+
+  if $INSTALL_CLAUDE; then
+    printf "Snippet:\n"
+    auto_fix_snippet "$HOME/.claude/CLAUDE.md" "$CLAUDE_WRAPPER/CLAUDE.md.snippet"
+
+    printf "\nHooks:\n"
+    auto_fix_hooks "$HOME/.claude/settings.json" "$CLAUDE_WRAPPER/settings.hook.json"
+  fi
+
+  printf "\nDone%s.\n" "$(if $DRY_RUN; then printf " (dry-run — no changes made)"; fi)"
+fi
